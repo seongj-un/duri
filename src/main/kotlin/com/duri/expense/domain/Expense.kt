@@ -1,6 +1,8 @@
 package com.duri.expense.domain
 
 import com.duri.common.entity.BaseTimeEntity
+import com.duri.common.error.BusinessException
+import com.duri.common.error.ErrorCode
 import com.duri.couple.domain.Couple
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -71,8 +73,38 @@ class Expense(
         this.settlementId = settlementId
     }
 
+    /**
+     * 확정된 정산에 들어간 지출은 금액이 이미 합의된 값이므로 되돌릴 수 없다.
+     * 삭제된 건은 존재하지 않는 것으로 다룬다.
+     */
+    fun requireEditable() {
+        if (isDeleted) throw BusinessException(ErrorCode.EXPENSE_NOT_FOUND)
+        if (isLocked) throw BusinessException(ErrorCode.EXPENSE_LOCKED)
+    }
+
+    fun update(
+        payerId: Long,
+        amount: Long,
+        category: ExpenseCategory,
+        payerBurdenRate: Short,
+        spentAt: LocalDate,
+        memo: String?,
+    ) {
+        requireEditable()
+        require(amount > 0) { "금액은 0보다 커야 합니다." }
+        require(payerBurdenRate in 0..100) { "부담 비율은 0에서 100 사이여야 합니다." }
+
+        this.payerId = payerId
+        this.amount = amount
+        this.category = category
+        this.payerBurdenRate = payerBurdenRate
+        this.spentAt = spentAt
+        this.memo = memo
+    }
+
     fun softDelete(now: Instant) {
-        if (deletedAt == null) deletedAt = now
+        requireEditable()
+        deletedAt = now
     }
 
     private companion object {

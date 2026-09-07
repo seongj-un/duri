@@ -1,0 +1,166 @@
+# duri 💸
+
+커플 2인 전용 공동생활비·데이트비용 정산 웹앱의 백엔드.
+
+월세·공과금·장보기·데이트비를 나눠 낼 때 "누가 얼마 냈지"를 없애는 것이 목표다.
+소셜 로그인으로 둘이 같은 space를 쓰고, 지출을 기록하면 실시간 순잔액이 뜨며, 월말에 정산을 확정한다.
+
+## 기술 스택
+
+| | |
+|---|---|
+| 언어 · 런타임 | Kotlin 2.3.21 / Java 17 |
+| 프레임워크 | Spring Boot 4.1.1 (Spring Framework 7, Spring Security 7) |
+| 영속성 | Spring Data JPA (Hibernate 7) + QueryDSL 5.1.0 |
+| DB | PostgreSQL 17 |
+| 마이그레이션 | Flyway 12 |
+| 테스트 | JUnit 5 + Testcontainers 2 (실제 PostgreSQL) |
+| 빌드 | Gradle 9.7.1 (Kotlin DSL) |
+
+## 실행
+
+PostgreSQL은 Docker로 띄운다. 호스트 포트는 **5433**을 쓴다(5432를 쓰는 다른 프로젝트와 겹치지 않도록).
+
+```bash
+docker compose up -d
+```
+
+```bash
+./gradlew bootRun
+```
+
+`bootRun`은 `spring-boot-docker-compose`가 `compose.yaml`을 알아서 기동하므로 첫 명령은 생략해도 된다.
+앱이 뜨면 Flyway가 스키마를 만들고, `hibernate.ddl-auto=validate`가 엔티티 매핑과 스키마 일치를 확인한다.
+
+### 소셜 로그인 설정
+
+기본값은 개발용 더미라 로그인 자체는 동작하지 않는다. 실제로 붙이려면:
+
+```bash
+cp .env.example .env
+```
+
+`.env`를 채운 뒤 환경변수로 넣고 실행한다. 키 생성:
+
+```bash
+openssl rand -base64 48
+```
+
+- 카카오: [developers.kakao.com](https://developers.kakao.com) → 내 애플리케이션 → REST API 키 / Client Secret
+- 구글: [console.cloud.google.com](https://console.cloud.google.com) → API 및 서비스 → 사용자 인증 정보
+- 두 곳 모두 리다이렉트 URI에 `http://localhost:8080/login/oauth2/code/{kakao|google}` 등록
+
+### 테스트
+
+```bash
+./gradlew test
+```
+
+Docker가 떠 있어야 한다. H2가 아니라 **실제 PostgreSQL 컨테이너** 위에서 돈다.
+부분 유니크 인덱스·체크 제약·`~` 정규식 제약처럼 H2가 조용히 무시하는 것들이 이 프로젝트 규칙의 핵심이기 때문이다.
+
+## 인증 흐름
+
+액세스 토큰은 JWT(HS256), 리프레시 토큰은 DB에 해시로만 저장하는 불투명 난수다.
+
+```
+브라우저                       서버                        카카오/구글
+   │                           │                              │
+   │ GET /oauth2/authorization/kakao                          │
+   ├──────────────────────────>│───── 302 ───────────────────>│
+   │                           │<──── code ───────────────────┤
+   │                           │
+   │   Set-Cookie: duri_rt (HttpOnly)  +  302 → 프론트엔드
+   │<──────────────────────────┤
+   │
+   │ POST /api/v1/auth/token   (쿠키 자동 전송)
+   ├──────────────────────────>│
+   │<── accessToken + 새 duri_rt ──┤   ← 호출할 때마다 리프레시 토큰이 회전한다
+   │
+   │ Authorization: Bearer <accessToken>
+   ├──────────────────────────>│
+```
+
+설계상 결정한 것들:
+
+- **액세스 토큰을 URL에 싣지 않는다.** 주소창·브라우저 히스토리·리퍼러·프록시 로그에 남기 때문이다.
+  로그인 성공 시엔 리프레시 쿠키만 심고, 프론트가 착지 후 `POST /api/v1/auth/token`으로 액세스 토큰을 받아간다.
+- **리프레시 토큰 회전 + 재사용 탐지.** 이미 쓴 토큰이 다시 들어오면 탈취로 보고 같은 회전 체인(family) 전체를 폐기한다.
+  이 폐기는 요청이 거절되더라도 남아야 하므로 `noRollbackFor`로 처리한다.
+- **필터체인 2개.** 소셜 로그인 핸드셰이크는 state 보관을 위해 세션을 허용하고, 실제 API는 완전 무상태다.
+- **CSRF 비활성화.** 쿠키를 쓰는 곳은 리프레시 경로뿐이고 그 쿠키가 `SameSite=Lax`라 크로스사이트 POST에 실려가지 않는다.
+  나머지는 Bearer 헤더 인증이라 CSRF 대상이 아니다.
+
+## API
+
+| 메서드 | 경로 | 인증 | 설명 |
+|---|---|---|---|
+| GET | `/oauth2/authorization/{kakao\|google}` | - | 소셜 로그인 시작 |
+| POST | `/api/v1/auth/token` | 쿠키 | 액세스 토큰 발급/재발급 (리프레시 회전) |
+| POST | `/api/v1/auth/logout` | 쿠키 | 로그아웃 |
+| GET | `/api/v1/users/me` | Bearer | 내 정보 + 소속 커플 id (부트스트랩) |
+| POST | `/api/v1/couples` | Bearer | 커플 space 생성 |
+| GET | `/api/v1/couples/me` | Bearer | 내 space 조회 |
+| PATCH | `/api/v1/couples/me` | Bearer | 이름 / 정산 기준일 변경 |
+| POST | `/api/v1/couples/me/invites` | Bearer | 초대 링크 발급 |
+| GET | `/api/v1/invites/{token}` | - | 초대 미리보기 |
+| POST | `/api/v1/invites/{token}/accept` | Bearer | 초대 수락 (페어링 완료) |
+
+에러 응답은 전부 같은 형태다.
+
+```json
+{
+  "code": "INVITE_EXPIRED",
+  "message": "만료된 초대 링크입니다.",
+  "path": "/api/v1/invites/xxx/accept",
+  "timestamp": "2026-09-07T01:37:52.371216Z"
+}
+```
+
+## 패키지 구조
+
+도메인별로 먼저 나누고, 그 안에서 레이어를 나눈다.
+
+```
+com.duri
+├── common/        공통: 에러, 감사 필드, 암호화, 웹 지원
+├── auth/          OAuth2 로그인, JWT 발급, 리프레시 토큰 회전
+├── user/          사용자, 정산 계좌
+├── couple/        커플 space, 초대 페어링
+├── expense/       지출 (스키마 · 도메인 규칙)
+└── settlement/    정산 (스키마 · 도메인 규칙)
+```
+
+## 스키마 설계에서 신경 쓴 것
+
+규칙을 애플리케이션 코드에만 두지 않고 가능한 한 DB 제약으로 내렸다. 동시 요청이 코드의 검사 사이를 비집고 들어와도 깨지지 않게 하기 위해서다.
+
+- **2인 고정** — `couple_members.member_no ∈ {1,2}` + `UNIQUE(couple_id, member_no)`.
+  세 번째 사람은 들어올 자리 자체가 없다.
+- **한 사람은 한 커플** — `UNIQUE(user_id) WHERE left_at IS NULL` 부분 인덱스.
+- **살아있는 초대는 커플당 하나** — `UNIQUE(couple_id) WHERE accepted_at IS NULL AND revoked_at IS NULL`.
+- **같은 달을 두 번 정산할 수 없다** — `UNIQUE(settlements.couple_id, period)`. 정산 확정 API 멱등성의 근거.
+- **정산 방향의 일관성** — `net_amount = 0`이면 채권자·채무자가 없고, 0이 아니면 둘 다 있으면서 서로 달라야 한다는 체크 제약.
+- **금액은 전부 `BIGINT`(원 단위 정수).** 부동소수점을 쓰지 않는다. 부담 비율을 곱해 남는 1원은 결제자가 흡수한다.
+- **토큰은 원문을 저장하지 않는다.** 초대·리프레시 토큰 모두 SHA-256 해시만 보관한다.
+- **계좌번호는 AES-256-GCM으로 암호화**해 저장한다(`EncryptedStringConverter`).
+
+초대 수락 같은 동시성 지점은 세 겹으로 막는다: 초대 행 비관적 락 → 엔티티 상태 검증 → DB 유니크 제약.
+
+## 진행 상황
+
+3개월 로드맵 기준 **W1–W2 완료**.
+
+- [x] 프로젝트 셋업 (레포·빌드·로컬 인프라)
+- [x] 소셜 로그인 (카카오/구글 OAuth2 + JWT 회전)
+- [x] 커플 space 생성 + 초대 링크 페어링
+- [x] DB 스키마 전체 (지출·정산 포함)
+- [ ] 지출 CRUD + 순잔액 계산 + 월별 뷰 ← **MVP 완료 지점**
+- [ ] 정산 사이클 (마감 / 확정 / 잠금, 멱등)
+- [ ] 정산 화면 계좌·금액 복사
+- [ ] 반복지출 스케줄러 (월세·공과금·구독)
+- [ ] 카테고리별 부담비율 프리셋
+- [ ] 실시간 동기화 (동시 편집)
+- [ ] 월별 카테고리 통계
+- [ ] 정산일 리마인드 알림
+- [ ] PWA + 배포

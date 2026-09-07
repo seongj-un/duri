@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: duri-postgres
+    environment:
+      POSTGRES_DB: duri
+      POSTGRES_USER: duri
+      POSTGRES_PASSWORD: duri
+      TZ: Asia/Seoul
+    ports:
+      # 호스트 5432 는 다른 프로젝트가 쓰는 경우가 많아 5433 으로 내보낸다
+      - "5433:5432"
+    volumes:
+      - duri-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U duri -d duri"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  duri-pgdata:

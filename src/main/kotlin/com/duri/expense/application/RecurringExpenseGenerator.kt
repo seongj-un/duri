@@ -3,6 +3,8 @@ package com.duri.expense.application
 import com.duri.expense.domain.Expense
 import com.duri.expense.domain.ExpenseRepository
 import com.duri.expense.domain.RecurringExpenseRepository
+import com.duri.realtime.application.CoupleEventPublisher
+import com.duri.realtime.domain.CoupleEventType
 import com.duri.settlement.domain.SettlementRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -20,6 +22,7 @@ class RecurringExpenseGenerator(
     private val recurringExpenseRepository: RecurringExpenseRepository,
     private val expenseRepository: ExpenseRepository,
     private val settlementRepository: SettlementRepository,
+    private val eventPublisher: CoupleEventPublisher,
 ) {
 
     @Transactional
@@ -50,7 +53,7 @@ class RecurringExpenseGenerator(
             return GenerationOutcome.PERIOD_SETTLED
         }
 
-        expenseRepository.save(
+        val created = expenseRepository.save(
             Expense(
                 couple = couple,
                 payerId = recurring.payerId,
@@ -62,6 +65,12 @@ class RecurringExpenseGenerator(
                 createdBy = recurring.createdBy,
                 recurringExpenseId = recurring.requiredId,
             ),
+        )
+        eventPublisher.publish(
+            type = CoupleEventType.RECURRING_EXPENSE_GENERATED,
+            coupleId = couple.requiredId,
+            resourceId = created.requiredId,
+            period = period,
         )
         return GenerationOutcome.CREATED
     }

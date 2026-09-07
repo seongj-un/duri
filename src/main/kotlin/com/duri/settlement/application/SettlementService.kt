@@ -10,6 +10,8 @@ import com.duri.expense.application.memberRefOf
 import com.duri.expense.domain.ExpenseQueryRepository
 import com.duri.expense.domain.ExpenseRepository
 import com.duri.expense.domain.ExpenseSearchCondition
+import com.duri.realtime.application.CoupleEventPublisher
+import com.duri.realtime.domain.CoupleEventType
 import com.duri.settlement.domain.Settlement
 import com.duri.settlement.domain.SettlementRepository
 import com.duri.settlement.domain.SettlementStatus
@@ -18,12 +20,12 @@ import com.duri.settlement.dto.SettlementResponse
 import com.duri.settlement.dto.TransferGuide
 import com.duri.user.application.bank
 import com.duri.user.domain.AccountRepository
-import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * 월 정산 사이클.
@@ -44,6 +46,7 @@ class SettlementService(
     private val coupleRepository: CoupleRepository,
     private val coupleContextLoader: CoupleContextLoader,
     private val balanceCalculator: BalanceCalculator,
+    private val eventPublisher: CoupleEventPublisher,
     private val clock: Clock,
 ) {
 
@@ -114,6 +117,13 @@ class SettlementService(
         log.info(
             "settlement confirmed: coupleId={} period={} netAmount={} lockedExpenses={}",
             context.coupleId, period, settlement.netAmount, locked,
+        )
+        eventPublisher.publish(
+            type = CoupleEventType.SETTLEMENT_CONFIRMED,
+            coupleId = context.coupleId,
+            actorId = userId,
+            resourceId = settlement.requiredId,
+            period = period,
         )
 
         return buildResponse(context, period, settlement)

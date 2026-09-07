@@ -10,6 +10,8 @@ import com.duri.expense.dto.ExpenseCreateRequest
 import com.duri.expense.dto.ExpenseResponse
 import com.duri.expense.dto.ExpenseUpdateRequest
 import com.duri.expense.dto.MemberRef
+import com.duri.realtime.application.CoupleEventPublisher
+import com.duri.realtime.domain.CoupleEventType
 import com.duri.settlement.domain.SettlementRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -23,6 +25,7 @@ class ExpenseService(
     private val settlementRepository: SettlementRepository,
     private val coupleContextLoader: CoupleContextLoader,
     private val burdenPresetService: BurdenPresetService,
+    private val eventPublisher: CoupleEventPublisher,
     private val clock: Clock,
 ) {
 
@@ -52,6 +55,13 @@ class ExpenseService(
                 createdBy = userId,
             ),
         )
+        eventPublisher.publish(
+            type = CoupleEventType.EXPENSE_CREATED,
+            coupleId = context.coupleId,
+            actorId = userId,
+            resourceId = expense.requiredId,
+            period = YearMonth.from(spentAt),
+        )
         return ExpenseResponse.of(expense, context.memberRefOf(payerId))
     }
 
@@ -76,6 +86,13 @@ class ExpenseService(
             spentAt = spentAt,
             memo = if (request.memo != null) request.memo.takeIf { it.isNotBlank() } else expense.memo,
         )
+        eventPublisher.publish(
+            type = CoupleEventType.EXPENSE_UPDATED,
+            coupleId = context.coupleId,
+            actorId = userId,
+            resourceId = expense.requiredId,
+            period = YearMonth.from(spentAt),
+        )
         return ExpenseResponse.of(expense, context.memberRefOf(expense.payerId))
     }
 
@@ -85,6 +102,13 @@ class ExpenseService(
         val expense = findEditable(context, expenseId)
         requirePeriodOpen(context.coupleId, expense.spentAt)
         expense.softDelete(clock.instant())
+        eventPublisher.publish(
+            type = CoupleEventType.EXPENSE_DELETED,
+            coupleId = context.coupleId,
+            actorId = userId,
+            resourceId = expense.requiredId,
+            period = YearMonth.from(expense.spentAt),
+        )
     }
 
     @Transactional(readOnly = true)

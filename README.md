@@ -126,6 +126,11 @@ Docker가 떠 있어야 한다. H2가 아니라 **실제 PostgreSQL 컨테이너
 | DELETE | `/api/v1/recurring-expenses/{id}` | Bearer | 반복지출 삭제 (생성 이력이 없을 때만) |
 | GET | `/api/v1/couples/me/burden-presets` | Bearer | 카테고리별 기본 부담비율 |
 | PUT | `/api/v1/couples/me/burden-presets` | Bearer | 카테고리별 기본 부담비율 저장 |
+| GET | `/api/v1/summaries/trend` | Bearer | 최근 N개월 카테고리별 지출 추이 |
+| GET | `/api/v1/events` | Bearer | 실시간 변경 스트림 (SSE) |
+| GET | `/api/v1/notifications` | Bearer | 알림함 (안 읽은 개수 포함) |
+| POST | `/api/v1/notifications/{id}/read` | Bearer | 알림 읽음 |
+| POST | `/api/v1/notifications/read-all` | Bearer | 모두 읽음 |
 
 `period` 는 `2026-09` 형식이며 생략하면 이번 달을 본다(정산 확정만 지난달).
 
@@ -248,9 +253,60 @@ com.duri
 누구 것이냐에 따라 부담이 뒤집힌다. 커플은 자리가 1번·2번 둘뿐이므로 1번의 비율만 저장하고
 2번은 그 나머지로 계산하며, 지출을 만들 때 결제자 기준으로 뒤집어 준다.
 
+## 실시간 동기화
+
+둘이 같은 화면을 보고 있을 때 한 쪽이 지출을 넣으면 상대 화면도 따라 바뀌어야 한다.
+커플 단위 SSE 스트림(`GET /api/v1/events`)으로 변경 신호를 밀어 준다.
+
+이벤트에는 **데이터를 싣지 않는다.** "무엇이 어느 달에서 바뀌었는지"만 알리고,
+받는 쪽이 그 달만 다시 불러온다. 페이로드를 실으면 발행 지점마다 권한 검사를 다시 해야 하고,
+받는 쪽이 이미 들고 있는 화면 상태와 어긋날 수 있다.
+
+```
+서비스 → ApplicationEvent → @TransactionalEventListener(AFTER_COMMIT) → SSE
+```
+
+커밋된 뒤에만 내보낸다. 롤백된 변경을 알리면 있지도 않은 지출이 상대 화면에 뜬다.
+리스너는 `@Async` 라 SSE I/O 가 요청 응답 시간에 섞이지 않는다.
+
+브라우저 기본 `EventSource` 는 헤더를 못 붙이므로 프론트는 **fetch 기반 SSE**를 쓴다
+(예: `@microsoft/fetch-event-source`). 토큰을 쿼리스트링에 실으면 주소창·프록시 로그에 남는다.
+
+연결은 이 인스턴스의 메모리에만 있다. 서버를 여러 대로 늘리면 Redis pub/sub 같은 중계가 필요하다.
+2인용 앱에 단일 인스턴스라 지금은 이 단순함이 이득이다.
+
+## 알림
+
+정산 기준일이 되면 **지난달**을 정산하라고 두 사람에게 알린다
+(`POST /settlements/confirm` 이 기간을 생략했을 때 지난달을 마감하는 것과 같은 규칙).
+
+```
+12월 정산할 시간이에요
+지현님이 성준님에게 150,000원 보내면 정산 완료예요.
+```
+
+이미 확정한 달은 알리지 않는다. 같은 사람에게 같은 기간의 알림을 두 번 보내지 않는 것은
+`UNIQUE(user_id, type, period)` 부분 인덱스가 보장한다.
+
+알림은 DB에 쌓이고 SSE로 실시간 전달된다. **웹푸시·메일 발송은 아직 없다** —
+VAPID 키·SMTP 자격증명과 프론트 서비스워커가 필요해서, 그 설정이 준비되면 붙인다.
+
+## 배포
+
+```bash
+docker build -t duri .
+```
+
+멀티스테이지 빌드로 JRE만 담고, root가 아닌 전용 사용자로 실행한다. 타임존은 `Asia/Seoul` 고정.
+`HEALTHCHECK` 는 `/actuator/health` 를 본다.
+
+GitHub Actions(`.github/workflows/ci.yml`)가 푸시·PR마다 `./gradlew build` 를 돌린다.
+Testcontainers가 러너의 Docker로 실제 PostgreSQL을 띄우므로 별도 서비스 설정이 필요 없다.
+실패하면 테스트 리포트를 아티팩트로 올린다.
+
 ## 진행 상황
 
-3개월 로드맵 기준 **W1–W8 완료**.
+3개월 로드맵 기준 **W1–W12 완료 (백엔드)**.
 
 - [x] 프로젝트 셋업 (레포·빌드·로컬 인프라)
 - [x] 소셜 로그인 (카카오/구글 OAuth2 + JWT 회전)
@@ -261,7 +317,8 @@ com.duri
 - [x] 정산 화면 계좌·금액 복사
 - [x] 반복지출 스케줄러 (월세·공과금·구독)
 - [x] 카테고리별 부담비율 프리셋
-- [ ] 실시간 동기화 (동시 편집)
-- [ ] 월별 카테고리 통계
-- [ ] 정산일 리마인드 알림
-- [ ] PWA + 배포
+- [x] 실시간 동기화 (동시 편집) — SSE
+- [x] 월별 카테고리 통계
+- [x] 정산일 리마인드 알림 (인앱 · 웹푸시/메일은 미구현)
+- [x] 배포 준비 (Dockerfile · GitHub Actions CI)
+- [ ] PWA + 프론트엔드 — 백엔드 범위 밖

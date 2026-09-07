@@ -49,6 +49,22 @@ export function formatDate(isoDate: string): string {
   return `${month}월 ${day}일 (${WEEKDAYS[date.getDay()]})`
 }
 
+/** "방금", "12분 전", "3시간 전", "어제", 그보다 오래되면 "9월 5일". */
+export function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime()
+  const minutes = Math.floor((Date.now() - then) / 60_000)
+
+  if (minutes < 1) return '방금'
+  if (minutes < 60) return `${minutes}분 전`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}시간 전`
+  if (hours < 48) return '어제'
+
+  const date = new Date(iso)
+  return `${date.getMonth() + 1}월 ${date.getDate()}일`
+}
+
 export function todayIso(): string {
   const now = new Date()
   const month = String(now.getMonth() + 1).padStart(2, '0')

@@ -7,6 +7,7 @@ import { BalanceHero } from '../components/BalanceHero'
 import { SectionTitle } from '../components/Card'
 import { ExpenseItem, ExpenseList } from '../components/ExpenseItem'
 import { Fab } from '../components/Fab'
+import { NotificationBell } from '../components/NotificationBell'
 import { MonthNav } from '../components/MonthNav'
 import { Button } from '../components/Button'
 import { EmptyState, ErrorState, Skeleton, SkeletonStack } from '../components/States'
@@ -37,9 +38,12 @@ export function HomePage() {
     <AppScreen
       tabBar
       action={
-        <div className={styles.heading}>
-          <span className={styles.brand}>PairPay</span>
-          <span className={styles.spaceName}>{couple.name}</span>
+        <div className={styles.headerActions}>
+          <div className={styles.heading}>
+            <span className={styles.brand}>PairPay</span>
+            <span className={styles.spaceName}>{couple.name}</span>
+          </div>
+          <NotificationBell />
         </div>
       }
     >

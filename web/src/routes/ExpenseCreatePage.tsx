@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { AppScreen } from '../components/AppScreen'
@@ -13,10 +13,14 @@ import { ApiError } from '../lib/api/client'
 import { queryKeys } from '../lib/queryKeys'
 import { CATEGORIES, CATEGORY_LABELS, todayIso, toPeriod } from '../lib/format'
 import { useCoupleContext } from '../lib/auth/SessionProvider'
+import { toRatioMode, usePresetPayerRate } from '../lib/burden'
 import type { ExpenseCategory } from '../lib/api/types'
 import styles from './ExpenseCreatePage.module.css'
 
 type RatioMode = 'half' | 'sixFour' | 'custom'
+
+/** 프리셋이 없으면 반반이다. 서버 기본값과 같다. */
+const DEFAULT_BURDEN_RATE = 50
 
 export function ExpenseCreatePage() {
   const { me, partner } = useCoupleContext()
@@ -29,9 +33,22 @@ export function ExpenseCreatePage() {
   const [payerId, setPayerId] = useState(me.userId)
   const [ratioMode, setRatioMode] = useState<RatioMode>('half')
   const [customRate, setCustomRate] = useState(50)
+  // 사용자가 비율을 직접 고르면 그 뒤로는 프리셋이 끼어들지 않는다.
+  const [ratioTouched, setRatioTouched] = useState(false)
   const [spentAt, setSpentAt] = useState(todayIso)
 
   // 저장되는 값은 언제나 "결제자 본인이 부담할 비율" 이다.
+  // 비율을 직접 고르지 않았다면 카테고리 프리셋을 따라간다.
+  // 프리셋이 없는 카테고리로 옮기면 반반으로 돌아온다 — 안 그러면 직전 카테고리의
+  // 비율이 그대로 남아, 고른 적 없는 값으로 저장된다.
+  const presetRate = usePresetPayerRate(category, payerId, me.userId)
+  useEffect(() => {
+    if (ratioTouched) return
+    const rate = presetRate ?? DEFAULT_BURDEN_RATE
+    setRatioMode(toRatioMode(rate))
+    setCustomRate(rate)
+  }, [presetRate, ratioTouched])
+
   const payerBurdenRate = ratioMode === 'half' ? 50 : ratioMode === 'sixFour' ? 60 : customRate
 
   const payer = payerId === me.userId ? me : partner
@@ -135,7 +152,10 @@ export function ExpenseCreatePage() {
         <SegmentedToggle
           label="부담 비율"
           value={ratioMode}
-          onChange={setRatioMode}
+          onChange={(mode) => {
+            setRatioTouched(true)
+            setRatioMode(mode)
+          }}
           options={[
             { value: 'half', label: '5:5' },
             { value: 'sixFour', label: '6:4' },
@@ -153,7 +173,10 @@ export function ExpenseCreatePage() {
               step={5}
               value={customRate}
               aria-label="결제자 부담 비율"
-              onChange={(event) => setCustomRate(Number(event.target.value))}
+              onChange={(event) => {
+                setRatioTouched(true)
+                setCustomRate(Number(event.target.value))
+              }}
             />
             <span className={styles.customValue}>{customRate}%</span>
           </div>

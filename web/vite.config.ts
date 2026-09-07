@@ -8,18 +8,19 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const backend = env.VITE_BACKEND_ORIGIN || 'http://localhost:8080'
 
+  const proxy = {
+    '/api': backend,
+    // 소셜 로그인 핸드셰이크. 카카오·구글이 돌아오는 곳은 백엔드에 직접 등록돼 있어
+    // 여기 프록시는 로그인 시작(302) 만 넘긴다.
+    '/oauth2': backend,
+    '/login/oauth2': backend,
+  }
+
   return {
     plugins: [react()],
-    server: {
-      port: 3000,
-      strictPort: true,
-      proxy: {
-        '/api': backend,
-        // 소셜 로그인 핸드셰이크. 카카오·구글이 돌아오는 곳은 백엔드에 직접 등록돼 있어
-        // 여기 프록시는 로그인 시작(302) 만 넘긴다.
-        '/oauth2': backend,
-        '/login/oauth2': backend,
-      },
-    },
+    server: { port: 3000, strictPort: true, proxy },
+    // 서비스워커는 프로덕션 빌드에서만 등록된다. preview 에도 같은 프록시를 걸어야
+    // 빌드 산출물을 백엔드와 함께 그대로 확인할 수 있다.
+    preview: { port: 4173, strictPort: true, proxy },
   }
 })

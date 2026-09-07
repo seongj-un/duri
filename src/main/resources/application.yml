@@ -109,6 +109,8 @@ duri:
   cors:
     allowed-origins:
       - http://localhost:3000
+      # vite preview. 프로덕션 빌드를 백엔드와 함께 로컬에서 확인할 때 쓴다.
+      - http://localhost:4173
 
 logging:
   level:

@@ -89,9 +89,17 @@ duri:
     allowed-redirect-hosts:
       - localhost
       - 127.0.0.1
+  realtime:
+    # 30분마다 끊고 다시 붙게 한다. 죽은 연결이 무한히 쌓이지 않도록.
+    timeout: PT30M
+    # 프록시의 유휴 타임아웃(보통 60초)보다 짧게 잡는다.
+    heartbeat-millis: 25000
   recurring:
     # 매일 00:10(KST). 자정 직후에 그날치 반복지출을 만든다.
     cron: ${RECURRING_CRON:0 10 0 * * *}
+  notification:
+    # 매일 오전 10시(KST). 자는 시간에 알림이 뜨지 않게 한다.
+    reminder-cron: ${REMINDER_CRON:0 0 10 * * *}
   invite:
     ttl: P7D
     base-url: ${INVITE_BASE_URL:http://localhost:3000/invite}

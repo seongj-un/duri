@@ -15,4 +15,14 @@ interface CoupleRepository : JpaRepository<Couple, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Couple c where c.id = :coupleId")
     fun findByIdForUpdate(@Param("coupleId") coupleId: Long): Couple?
+
+    /** 오늘이 정산 기준일인 커플들. 리마인드 스케줄러가 훑는다. */
+    @Query(
+        """
+        select c from Couple c
+        where c.status = com.duri.couple.domain.CoupleStatus.ACTIVE
+          and c.settlementDay = :day
+        """,
+    )
+    fun findActiveBySettlementDay(@Param("day") day: Short): List<Couple>
 }

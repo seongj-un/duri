@@ -44,6 +44,12 @@ enum class ErrorCode(
     EXPENSE_LOCKED(HttpStatus.CONFLICT, "이미 정산이 확정된 지출은 수정하거나 삭제할 수 없습니다."),
     PAYER_NOT_IN_COUPLE(HttpStatus.BAD_REQUEST, "결제자는 두 사람 중 한 명이어야 합니다."),
     PERIOD_ALREADY_SETTLED(HttpStatus.CONFLICT, "이미 정산이 확정된 달입니다."),
+
+    // 정산 · 계좌
+    SETTLEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "정산 내역을 찾을 수 없습니다."),
+    FUTURE_PERIOD_NOT_SETTLEABLE(HttpStatus.BAD_REQUEST, "아직 오지 않은 달은 정산할 수 없습니다."),
+    ACCOUNT_NOT_REGISTERED(HttpStatus.NOT_FOUND, "등록된 계좌가 없습니다."),
+    UNSUPPORTED_BANK(HttpStatus.BAD_REQUEST, "지원하지 않는 은행입니다."),
     ;
 
     /** 열거 상수 이름을 그대로 응답 code 로 쓴다. */

@@ -1,10 +1,8 @@
 package com.duri.expense.application
 
-import com.duri.couple.application.CoupleContext
 import com.duri.couple.application.CoupleContextLoader
 import com.duri.expense.domain.ExpenseQueryRepository
 import com.duri.expense.domain.ExpenseSearchCondition
-import com.duri.expense.domain.PayerAggregate
 import com.duri.expense.dto.BalanceSummary
 import com.duri.expense.dto.CategorySpending
 import com.duri.expense.dto.MemberSpending
@@ -16,7 +14,6 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import kotlin.math.abs
 
 /**
  * 월별 뷰 한 화면에 필요한 값을 한 번에 만든다.
@@ -32,6 +29,7 @@ class MonthlySummaryService(
     private val queryRepository: ExpenseQueryRepository,
     private val settlementRepository: SettlementRepository,
     private val coupleContextLoader: CoupleContextLoader,
+    private val balanceCalculator: BalanceCalculator,
 ) {
 
     @Transactional(readOnly = true)
@@ -81,31 +79,11 @@ class MonthlySummaryService(
                     ratio = it.amount.percentageOf(totalAmount),
                 )
             },
-            balance = balanceOf(context, byPayer),
+            balance = balanceCalculator.calculate(context, period).toSummary(context),
             settlementStatus = settlementRepository
                 .findByCoupleIdAndPeriod(context.coupleId, period)
                 ?.status,
         )
-    }
-
-    /**
-     * 순잔액 = (내가 낸 것 중 상대 몫) - (상대가 낸 것 중 내 몫).
-     * 부호로 방향을 정하고 금액 자체는 절댓값으로 내보낸다.
-     */
-    private fun balanceOf(
-        context: CoupleContext,
-        byPayer: Map<Long, PayerAggregate>,
-    ): BalanceSummary {
-        val first = context.members.first().user.requiredId
-        val second = context.partnerOf(first).user.requiredId
-
-        val net = (byPayer[first]?.partnerShareSum ?: 0L) - (byPayer[second]?.partnerShareSum ?: 0L)
-
-        return when {
-            net > 0 -> BalanceSummary(net, context.memberRefOf(first), context.memberRefOf(second))
-            net < 0 -> BalanceSummary(abs(net), context.memberRefOf(second), context.memberRefOf(first))
-            else -> BalanceSummary(0, null, null)
-        }
     }
 
     private fun Long.percentageOf(total: Long): Double =

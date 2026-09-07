@@ -1,0 +1,79 @@
+/* 커플이 가장 궁금한 것: 누가 누구에게 얼마. 화면에서 유일하게 색과 볼륨을 쓰는 자리다. */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.people {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.arrow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+}
+
+.line {
+  flex: 1;
+  height: 0;
+  border-top: 1.5px solid var(--line);
+}
+
+.direction {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  letter-spacing: -0.01em;
+}
+
+.direction b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.amount {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.settled {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.caption {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  height: 26px;
+  padding: 0 var(--space-3);
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badgeConfirmed {
+  background: var(--credit-soft);
+  color: var(--credit);
+}
+
+.badgeOpen {
+  background: var(--ink-soft);
+  color: var(--ink-muted);
+}

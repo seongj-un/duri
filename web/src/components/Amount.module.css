@@ -1,0 +1,51 @@
+/* 금액은 색이 정보다. 받을 돈 초록, 줄 돈 빨강. */
+.amount {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.hero {
+  font-size: 40px;
+  line-height: 1.1;
+}
+
+.lg {
+  font-size: 24px;
+}
+
+.md {
+  font-size: 17px;
+}
+
+.sm {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.neutral {
+  color: var(--ink);
+}
+
+.credit {
+  color: var(--credit);
+}
+
+.debit {
+  color: var(--debit);
+}
+
+.muted {
+  color: var(--ink-muted);
+  font-weight: 700;
+}
+
+/* 원 단위는 금액보다 한 톤 작고 가볍게. 숫자가 주인공이다. */
+.unit {
+  font-size: 0.62em;
+  font-weight: 700;
+  margin-left: 0.12em;
+  letter-spacing: 0;
+}

@@ -1,0 +1,46 @@
+/*
+ * 노션 "PairPay 프론트 디자인" 의 컬러 토큰·형태 규칙을 그대로 옮긴 것.
+ * 값을 바꿀 일이 생기면 노션이 원본이다.
+ */
+:root {
+  /* 색: 역할 이름으로만 쓴다. 컴포넌트가 HEX 를 직접 알지 않게. */
+  --canvas: #eef1f5;
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --ink: #17203a;
+  --ink-muted: #5a6472;
+  --line: #e4e7ec;
+  --brand: #2a54d6;
+  --credit: #0e7c5a; /* 받을 돈 */
+  --debit: #c43b2e; /* 줄 돈 */
+
+  /* 위 색에서 파생된 것들. 원본 토큰이 아니라 그 색의 옅은 판이다. */
+  --brand-soft: #eaefff;
+  --credit-soft: #e6f3ee;
+  --debit-soft: #fceceb;
+  --ink-soft: #f0f2f6;
+
+  /* 모서리: 역할별로 다르다. 전부 같은 라운드를 쓰지 않는다. */
+  --r-card: 22px;
+  --r-field: 14px;
+  --r-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+
+  /* 그림자는 히어로 카드에서만. 나머지는 헤어라인으로 구분한다. */
+  --shadow-hero: 0 12px 32px -12px rgb(23 32 58 / 22%);
+  --shadow-fab: 0 8px 20px -6px rgb(42 84 214 / 45%);
+
+  /* 모바일 우선. 화면이 넓어도 이 폭 안에서 논다. */
+  --app-width: 460px;
+  --bar-height: 60px;
+}

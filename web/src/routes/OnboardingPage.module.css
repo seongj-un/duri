@@ -1,0 +1,17 @@
+.lead {
+  margin: var(--space-6) 0 var(--space-6);
+}
+
+.headline {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+}
+
+.sub {
+  margin-top: var(--space-3);
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}

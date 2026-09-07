@@ -1,0 +1,59 @@
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: var(--r-pill);
+  background: var(--ink-soft);
+  color: var(--ink-muted);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  user-select: none;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sm {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.md {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+}
+
+.lg {
+  width: 56px;
+  height: 56px;
+  font-size: 20px;
+}
+
+/* 두 사람을 나란히 둘 때. 겹쳐야 "우리 둘"로 읽힌다. */
+.pair {
+  display: flex;
+  align-items: center;
+}
+
+.pair > * + * {
+  margin-left: -10px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* 내 아바타는 브랜드색으로 구분한다. */
+.mine {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.pending {
+  background: transparent;
+  border: 1.5px dashed var(--line);
+  color: var(--ink-muted);
+}

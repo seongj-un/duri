@@ -1,0 +1,112 @@
+.transfer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.copyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--r-field);
+  background: var(--bg);
+}
+
+.account {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.accountNo {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  /* 보내기 전에 눈으로 대조하는 값이다. 잘라내지 않고 줄을 넘긴다. */
+  word-break: break-all;
+}
+
+.holder {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--r-field);
+  background: var(--brand-soft);
+}
+
+.noticeText {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.actions {
+  margin-top: var(--space-5);
+}
+
+.meta {
+  margin-top: var(--space-3);
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.history {
+  background: var(--surface);
+  border-radius: var(--r-card);
+  overflow: hidden;
+}
+
+.historyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4);
+  text-align: left;
+}
+
+.historyRow:hover {
+  background: var(--bg);
+}
+
+.historyLabel {
+  display: flex;
+  flex-direction: column;
+}
+
+.historyRow + .historyRow {
+  border-top: 1px solid var(--line);
+}
+
+.historyPeriod {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.historyDirection {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}

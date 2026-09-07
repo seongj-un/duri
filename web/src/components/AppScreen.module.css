@@ -1,0 +1,80 @@
+/* 캔버스 위에 얹힌 모바일 화면. 넓은 창에서도 앱 폭 안에서만 논다. */
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-width: var(--app-width);
+  margin: 0 auto;
+  background: var(--bg);
+  position: relative;
+}
+
+@media (min-width: 520px) {
+  .screen {
+    min-height: 100dvh;
+    box-shadow: 0 0 0 1px var(--line);
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--bar-height);
+  padding: 0 var(--space-4);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* 스크롤이 시작되면 헤어라인이 생겨 내용과 헤더가 구분된다. */
+.barBordered {
+  border-bottom: 1px solid var(--line);
+}
+
+.back {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: -8px;
+  border-radius: var(--r-pill);
+  color: var(--ink);
+}
+
+.back:hover {
+  background: var(--ink-soft);
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.barSpacer {
+  flex: 1;
+}
+
+.body {
+  flex: 1;
+  padding: 0 var(--space-4) var(--space-7);
+}
+
+/* 하단 고정 액션이 있는 화면은 그만큼 바닥을 비워 둔다. */
+.bodyWithFooter {
+  padding-bottom: 104px;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 72%, transparent);
+}
+
+/* 탭바가 있는 화면은 바닥을 그만큼 비워 둔다. FAB 도 그 위에 올라간다. */
+.bodyWithTabBar {
+  padding-bottom: calc(78px + env(safe-area-inset-bottom));
+}

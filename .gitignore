@@ -22,3 +22,7 @@ out/
 # Secrets / local env
 .env
 .env.local
+
+# 프론트엔드
+web/node_modules/
+web/dist/

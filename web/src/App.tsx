@@ -3,7 +3,11 @@ import { FullPageSpinner } from './components/FullPageSpinner'
 import { useSession } from './lib/auth/SessionProvider'
 import { useCoupleEvents } from './lib/realtime/useCoupleEvents'
 import { AccountPage } from './routes/AccountPage'
+import { BurdenPresetPage } from './routes/BurdenPresetPage'
 import { NotificationsPage } from './routes/NotificationsPage'
+import { RecurringFormPage } from './routes/RecurringFormPage'
+import { RecurringPage } from './routes/RecurringPage'
+import { SettingsPage } from './routes/SettingsPage'
 import { TrendPage } from './routes/TrendPage'
 import { ExpenseCreatePage } from './routes/ExpenseCreatePage'
 import { HomePage } from './routes/HomePage'
@@ -54,6 +58,11 @@ export function App() {
           <Route path="/account" element={<AccountPage />} />
           <Route path="/trend" element={<TrendPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/recurring" element={<RecurringPage />} />
+          <Route path="/recurring/new" element={<RecurringFormPage />} />
+          <Route path="/recurring/:recurringExpenseId" element={<RecurringFormPage />} />
+          <Route path="/burden-presets" element={<BurdenPresetPage />} />
         </Route>
       </Route>
 

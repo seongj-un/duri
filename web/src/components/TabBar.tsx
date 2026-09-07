@@ -46,6 +46,21 @@ const TABS: { to: string; label: string; icon: ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    to: '/settings',
+    label: '설정',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <circle cx="10" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.6" />
+        <path
+          d="M10 3.2v1.4M10 15.4v1.4M16.8 10h-1.4M4.6 10H3.2M14.8 5.2l-1 1M6.2 13.8l-1 1M14.8 14.8l-1-1M6.2 6.2l-1-1"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
 ]
 
 export function TabBar() {

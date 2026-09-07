@@ -86,7 +86,8 @@ export function SettingsPage() {
         loading={save.isPending}
         onClick={() => save.mutate()}
       >
-        {changed ? '저장' : '저장됨'}
+        {/* 아직 아무것도 저장하지 않았으므로 "저장됨" 이라고 말하지 않는다. */}
+        {changed ? '저장' : '변경사항 없음'}
       </Button>
 
       <SectionTitle>관리</SectionTitle>

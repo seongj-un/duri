@@ -58,7 +58,8 @@ export function BurdenPresetPage() {
           loading={save.isPending}
           onClick={() => save.mutate()}
         >
-          {changed.length > 0 ? `${changed.length}개 저장` : '저장됨'}
+          {/* 아직 아무것도 저장하지 않았으므로 "저장됨" 이라고 말하지 않는다. */}
+          {changed.length > 0 ? `${changed.length}개 저장` : '변경사항 없음'}
         </Button>
       }
     >

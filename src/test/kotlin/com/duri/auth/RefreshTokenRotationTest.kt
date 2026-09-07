@@ -11,14 +11,13 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import java.time.Duration
 
 @DisplayName("리프레시 토큰 회전과 재사용 탐지")
 class RefreshTokenRotationTest(
-    @Autowired private val refreshTokenService: RefreshTokenService,
-    @Autowired private val refreshTokenRepository: RefreshTokenRepository,
-    @Autowired private val userRepository: UserRepository,
+    private val refreshTokenService: RefreshTokenService,
+    private val refreshTokenRepository: RefreshTokenRepository,
+    private val userRepository: UserRepository,
 ) : IntegrationTestBase() {
 
     @Test

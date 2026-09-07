@@ -6,7 +6,6 @@ import com.duri.support.IntegrationTestBase
 import com.duri.user.domain.UserRepository
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -18,9 +17,9 @@ import org.springframework.test.web.servlet.post
 @AutoConfigureMockMvc
 @DisplayName("커플 space API")
 class CoupleApiTest(
-    @Autowired private val mockMvc: MockMvc,
-    @Autowired private val userRepository: UserRepository,
-    @Autowired private val accessTokenIssuer: AccessTokenIssuer,
+    private val mockMvc: MockMvc,
+    private val userRepository: UserRepository,
+    private val accessTokenIssuer: AccessTokenIssuer,
 ) : IntegrationTestBase() {
 
     private fun tokenFor(nickname: String = "성준"): Pair<Long, String> {

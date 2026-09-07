@@ -9,7 +9,6 @@ import jakarta.servlet.http.Cookie
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpHeaders
 import org.springframework.test.web.servlet.MockMvc
@@ -20,10 +19,10 @@ import java.time.Duration
 @AutoConfigureMockMvc
 @DisplayName("인증 API")
 class AuthApiTest(
-    @Autowired private val mockMvc: MockMvc,
-    @Autowired private val userRepository: UserRepository,
-    @Autowired private val refreshTokenService: RefreshTokenService,
-    @Autowired private val accessTokenIssuer: AccessTokenIssuer,
+    private val mockMvc: MockMvc,
+    private val userRepository: UserRepository,
+    private val refreshTokenService: RefreshTokenService,
+    private val accessTokenIssuer: AccessTokenIssuer,
 ) : IntegrationTestBase() {
 
     @Test

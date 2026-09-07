@@ -15,14 +15,13 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import java.time.Duration
 
 @DisplayName("커플 space 생성과 파트너 페어링")
 class CouplePairingTest(
-    @Autowired private val coupleService: CoupleService,
-    @Autowired private val inviteService: CoupleInviteService,
-    @Autowired private val userRepository: UserRepository,
+    private val coupleService: CoupleService,
+    private val inviteService: CoupleInviteService,
+    private val userRepository: UserRepository,
 ) : IntegrationTestBase() {
 
     @Test

@@ -38,6 +38,12 @@ enum class ErrorCode(
     INVITE_ALREADY_USED(HttpStatus.CONFLICT, "이미 사용된 초대 링크입니다."),
     INVITE_REVOKED(HttpStatus.GONE, "취소된 초대 링크입니다."),
     CANNOT_INVITE_SELF(HttpStatus.BAD_REQUEST, "본인이 만든 초대는 수락할 수 없습니다."),
+
+    // 지출
+    EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "지출 내역을 찾을 수 없습니다."),
+    EXPENSE_LOCKED(HttpStatus.CONFLICT, "이미 정산이 확정된 지출은 수정하거나 삭제할 수 없습니다."),
+    PAYER_NOT_IN_COUPLE(HttpStatus.BAD_REQUEST, "결제자는 두 사람 중 한 명이어야 합니다."),
+    PERIOD_ALREADY_SETTLED(HttpStatus.CONFLICT, "이미 정산이 확정된 달입니다."),
     ;
 
     /** 열거 상수 이름을 그대로 응답 code 로 쓴다. */

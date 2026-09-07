@@ -50,6 +50,13 @@ enum class ErrorCode(
     FUTURE_PERIOD_NOT_SETTLEABLE(HttpStatus.BAD_REQUEST, "아직 오지 않은 달은 정산할 수 없습니다."),
     ACCOUNT_NOT_REGISTERED(HttpStatus.NOT_FOUND, "등록된 계좌가 없습니다."),
     UNSUPPORTED_BANK(HttpStatus.BAD_REQUEST, "지원하지 않는 은행입니다."),
+
+    // 반복지출
+    RECURRING_EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "반복지출을 찾을 수 없습니다."),
+    RECURRING_EXPENSE_IN_USE(
+        HttpStatus.CONFLICT,
+        "이미 이 반복지출로 만들어진 지출이 있어 삭제할 수 없습니다. 중지하면 더 이상 생성되지 않습니다.",
+    ),
     ;
 
     /** 열거 상수 이름을 그대로 응답 code 로 쓴다. */

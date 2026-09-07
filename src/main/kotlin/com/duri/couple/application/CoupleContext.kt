@@ -16,6 +16,10 @@ data class CoupleContext(
 ) {
     val coupleId: Long get() = couple.requiredId
 
+    /** 1번 자리(OWNER). 부담 비율 프리셋은 이 사람을 기준으로 저장한다. */
+    val member1: CoupleMember get() = members.minByOrNull { it.memberNo }
+        ?: throw BusinessException(ErrorCode.COUPLE_NOT_ACTIVE)
+
     fun memberOf(userId: Long): CoupleMember =
         members.firstOrNull { it.user.requiredId == userId }
             ?: throw BusinessException(ErrorCode.NOT_COUPLE_MEMBER)

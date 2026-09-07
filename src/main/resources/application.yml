@@ -62,7 +62,13 @@ spring:
             user-name-attribute: id
 
 server:
-  port: ${SERVER_PORT:8080}
+  # Railway 같은 PaaS 는 PORT 를 주입한다. 없으면 로컬 기본값을 쓴다.
+  port: ${PORT:${SERVER_PORT:8080}}
+  # 프록시 뒤에서는 TLS 가 앞단에서 끝나므로, 이 설정이 없으면 OAuth redirect_uri 가
+  # http://내부호스트:포트 로 만들어져 카카오·구글이 거부한다.
+  # 기본값은 none 이다 — 프록시가 없는데 X-Forwarded-* 를 믿으면
+  # 헤더를 위조해 redirect_uri 를 바꿔치기할 수 있다. 프록시 뒤에서만 켠다.
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
   shutdown: graceful
   error:
     include-message: never
@@ -86,9 +92,9 @@ duri:
     refresh-token-ttl: P14D
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
-    allowed-redirect-hosts:
-      - localhost
-      - 127.0.0.1
+    # redirect-uri 의 호스트가 여기 없으면 부팅 때 바로 죽는다.
+    # 설정 실수로 로그인 결과가 엉뚱한 곳으로 흘러가는 것을 막기 위한 검사다.
+    allowed-redirect-hosts: ${OAUTH2_ALLOWED_REDIRECT_HOSTS:localhost,127.0.0.1}
   realtime:
     # 30분마다 끊고 다시 붙게 한다. 죽은 연결이 무한히 쌓이지 않도록.
     timeout: PT30M
@@ -106,11 +112,14 @@ duri:
   crypto:
     # AES-256-GCM. 운영에서는 반드시 ACCOUNT_ENCRYPTION_KEY 를 주입한다.
     account-key: ${ACCOUNT_ENCRYPTION_KEY:ZHVyaS1kZXYtb25seS1hY2NvdW50LWtleS0zMmJ5dGU=}
+  auth:
+    cookie:
+      # 프론트와 백엔드가 다른 도메인에 있으면 None + secure 여야 쿠키가 실린다.
+      same-site: ${COOKIE_SAME_SITE:Lax}
+      secure: ${COOKIE_SECURE:false}
   cors:
-    allowed-origins:
-      - http://localhost:3000
-      # vite preview. 프로덕션 빌드를 백엔드와 함께 로컬에서 확인할 때 쓴다.
-      - http://localhost:4173
+    # 쉼표로 여러 개. 기본값의 4173 은 vite preview(프로덕션 빌드 로컬 확인)용이다.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4173}
 
 logging:
   level:

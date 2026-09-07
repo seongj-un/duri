@@ -32,6 +32,6 @@ ENV TZ=Asia/Seoul \
 
 # 컨테이너 오케스트레이터가 준비 상태를 알 수 있도록
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD curl -fsS http://localhost:8080/actuator/health || exit 1
+    CMD curl -fsS "http://localhost:${PORT:-8080}/actuator/health" || exit 1
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

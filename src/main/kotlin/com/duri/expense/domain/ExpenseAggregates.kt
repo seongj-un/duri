@@ -17,3 +17,12 @@ data class CategoryAggregate(
     val amount: Long,
     val count: Long,
 )
+
+/** 월 x 카테고리 교차 집계. 추이 그래프의 원본이 된다. */
+data class MonthCategoryAggregate(
+    /** "202609" */
+    val period: String,
+    val category: ExpenseCategory,
+    val amount: Long,
+    val count: Long,
+)

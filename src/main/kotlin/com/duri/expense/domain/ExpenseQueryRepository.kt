@@ -85,6 +85,32 @@ class ExpenseQueryRepository(
             .groupBy(expense.payerId)
             .fetch()
 
+    /**
+     * 월 x 카테고리 교차 집계.
+     *
+     * to_char 는 인덱스 식으로는 못 쓰지만(IMMUTABLE 이 아님) 조회에서는 문제없다.
+     * 월을 문자열 YYYYMM 으로 뽑아 두면 정렬이 곧 시간순이라 그대로 축으로 쓸 수 있다.
+     */
+    fun aggregateByMonthAndCategory(condition: ExpenseSearchCondition): List<MonthCategoryAggregate> {
+        val period = Expressions.stringTemplate("to_char({0}, 'YYYYMM')", expense.spentAt)
+
+        return queryFactory
+            .select(
+                Projections.constructor(
+                    MonthCategoryAggregate::class.java,
+                    period,
+                    expense.category,
+                    expense.amount.sum().coalesce(0L),
+                    expense.count(),
+                ),
+            )
+            .from(expense)
+            .where(condition.toPredicate())
+            .groupBy(period, expense.category)
+            .orderBy(period.asc())
+            .fetch()
+    }
+
     fun aggregateByCategory(condition: ExpenseSearchCondition): List<CategoryAggregate> =
         queryFactory
             .select(

@@ -40,6 +40,28 @@ class GlobalExceptionHandler {
         return ResponseEntity.status(ErrorCode.INVALID_REQUEST.status).body(body)
     }
 
+    /**
+     * 도메인 엔티티의 require 실패. 값이 잘못된 것이므로 400 이 맞다.
+     *
+     * 다만 DTO 검증에서 걸렸어야 할 값이 여기까지 왔다는 뜻이기도 해서
+     * 스택트레이스를 남겨 검증이 빠진 곳을 찾을 수 있게 한다.
+     */
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgument(
+        e: IllegalArgumentException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ErrorResponse> {
+        log.warn("illegal argument reached the domain layer at {}", request.requestURI, e)
+        return ResponseEntity.status(ErrorCode.INVALID_REQUEST.status)
+            .body(
+                ErrorResponse.of(
+                    ErrorCode.INVALID_REQUEST,
+                    request.requestURI,
+                    e.message ?: ErrorCode.INVALID_REQUEST.message,
+                ),
+            )
+    }
+
     /** 정적 리소스 404 는 소음이므로 그대로 404 로 넘긴다. */
     @ExceptionHandler(NoResourceFoundException::class)
     fun handleNoResource(e: NoResourceFoundException, request: HttpServletRequest): ResponseEntity<ErrorResponse> =

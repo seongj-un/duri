@@ -1,0 +1,105 @@
+spring:
+  application:
+    name: duri
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/duri}
+    username: ${DB_USERNAME:duri}
+    password: ${DB_PASSWORD:duri}
+    hikari:
+      maximum-pool-size: 10
+      pool-name: duri-pool
+
+  # compose.yaml 의 postgres 를 bootRun 시 자동 기동. 앱을 내려도 DB 는 살려둔다.
+  docker:
+    compose:
+      lifecycle-management: start-only
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate      # 스키마의 유일한 출처는 Flyway
+    properties:
+      hibernate:
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  jackson:
+    default-property-inclusion: non_null
+    deserialization:
+      fail-on-unknown-properties: false
+
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-name: Kakao
+            client-id: ${KAKAO_CLIENT_ID:unset-kakao-client-id}
+            client-secret: ${KAKAO_CLIENT_SECRET:unset}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - profile_nickname
+              - profile_image
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:unset-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:unset}
+            scope:
+              - profile
+              - email
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: never
+
+duri:
+  jwt:
+    # 로컬 기본값은 개발 전용. 운영에서는 반드시 JWT_SECRET 을 주입한다.
+    secret: ${JWT_SECRET:ZHVyaS1kZXYtb25seS1qd3Qtc2VjcmV0LTMyYnl0ZXM=}
+    issuer: duri
+    access-token-ttl: PT30M
+    refresh-token-ttl: P14D
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
+    allowed-redirect-hosts:
+      - localhost
+      - 127.0.0.1
+  invite:
+    ttl: P7D
+    base-url: ${INVITE_BASE_URL:http://localhost:3000/invite}
+  crypto:
+    # AES-256-GCM. 운영에서는 반드시 ACCOUNT_ENCRYPTION_KEY 를 주입한다.
+    account-key: ${ACCOUNT_ENCRYPTION_KEY:ZHVyaS1kZXYtb25seS1hY2NvdW50LWtleS0zMmJ5dGU=}
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+
+logging:
+  level:
+    com.duri: DEBUG
+    org.hibernate.orm.jdbc.bind: ${SQL_BIND_LOG:INFO}

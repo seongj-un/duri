@@ -400,30 +400,65 @@ web/src
 SPA라 모든 경로를 `index.html`로 되돌리고, `sw.js`는 캐시하지 않으며(캐시되면 서비스워커가
 영영 갱신되지 않는다) `/assets/*`는 파일명에 해시가 박혀 있어 영구 캐시로 둔다.
 
-**백엔드는 아직 배포되지 않았다.** Vercel에는 Java 런타임이 없고, 이 앱은 서버리스에 맞지도 않다 —
+**백엔드는 Railway로 간다.** Vercel에는 Java 런타임이 없고, 이 앱은 서버리스에 맞지도 않다 —
 SSE가 30분짜리 연결을 붙들어야 하고 반복지출·알림 스케줄러가 상주 프로세스를 필요로 한다.
-Railway / Fly.io / 개인 서버 중 하나로 가야 한다. 이미지는 준비돼 있다.
+
+`railway.json`이 Dockerfile 빌더와 `/actuator/health` 헬스체크를 지정한다.
+**복제본은 1개로 고정**했다. SSE 연결이 인스턴스 메모리에만 있어 두 대로 늘리면 상대에게 신호가
+닿지 않고, 스케줄러도 중복 실행된다(중복 생성 자체는 DB 유니크 제약이 막지만 헛일을 한다).
+
+### 배포 절차
+
+1. Railway 프로젝트에 이 레포를 연결하고 **PostgreSQL** 플러그인을 추가한다.
+2. 백엔드 서비스에 환경변수를 넣는다. DB 값은 Railway의 변수 참조를 그대로 쓴다.
+
+```
+DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+DB_USERNAME=${{Postgres.PGUSER}}
+DB_PASSWORD=${{Postgres.PGPASSWORD}}
+
+JWT_SECRET=<openssl rand -base64 48>
+ACCOUNT_ENCRYPTION_KEY=<openssl rand -base64 32>
+
+KAKAO_CLIENT_ID=...
+KAKAO_CLIENT_SECRET=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+
+FORWARD_HEADERS_STRATEGY=framework
+CORS_ALLOWED_ORIGINS=https://pairpay-two.vercel.app
+OAUTH2_REDIRECT_URI=https://pairpay-two.vercel.app/oauth/callback
+OAUTH2_ALLOWED_REDIRECT_HOSTS=pairpay-two.vercel.app
+INVITE_BASE_URL=https://pairpay-two.vercel.app/invite
+COOKIE_SAME_SITE=None
+COOKIE_SECURE=true
+```
+
+`PORT`는 Railway가 알아서 주입한다.
+
+3. 카카오·구글 콘솔의 리다이렉트 URI에 `https://<백엔드도메인>/login/oauth2/code/kakao`(구글도 동일)를 등록한다.
+4. Vercel에 `VITE_API_BASE_URL=https://<백엔드도메인>`을 넣고 다시 배포한다. **빌드 시점에 박히는 값이라 재배포가 필요하다.**
+
+### 왜 이 값들이 필요한가
+
+- **`FORWARD_HEADERS_STRATEGY=framework`** — 프록시 뒤에서는 TLS가 앞단에서 끝난다. 이게 없으면
+  OAuth `redirect_uri`가 `http://<내부호스트>:<포트>/...`로 만들어져 카카오·구글이 거부한다.
+  기본값이 `none`인 것은 의도한 것이다 — 프록시가 없는데 `X-Forwarded-*`를 믿으면
+  헤더를 위조해 리다이렉트 주소를 바꿔치기할 수 있다. 프록시 뒤에서만 켠다.
+- **`COOKIE_SAME_SITE=None` + `COOKIE_SECURE=true`** — 프론트와 백엔드가 다른 도메인이라
+  `Lax`면 리프레시 쿠키가 아예 실리지 않는다.
+- **`OAUTH2_ALLOWED_REDIRECT_HOSTS`** — 여기 없는 호스트를 `OAUTH2_REDIRECT_URI`에 넣으면
+  부팅 때 바로 죽는다. 설정 실수로 로그인 결과가 엉뚱한 곳으로 흘러가는 것을 막기 위한 검사다.
+
+### 로컬에서 확인하기
+
+배포 전에 같은 설정으로 컨테이너를 띄워 볼 수 있다.
 
 ```bash
 docker build -t duri .
 ```
 
 멀티스테이지 빌드로 JRE만 담고, root가 아닌 전용 사용자로 실행한다. 타임존은 `Asia/Seoul` 고정.
-`HEALTHCHECK` 는 `/actuator/health` 를 본다.
-
-백엔드가 프론트와 다른 도메인에 뜨면 설정을 바꿔야 한다. 지금 기본값은 "프론트가 백엔드를
-같은 오리진으로 프록시한다"를 전제로 잡혀 있다.
-
-```
-duri.auth.cookie.same-site=None    # Lax 면 교차 사이트에서 쿠키가 실리지 않는다
-duri.auth.cookie.secure=true
-duri.cors.allowed-origins=<프론트 주소>
-duri.oauth2.redirect-uri=<프론트 주소>/oauth/callback
-duri.oauth2.allowed-redirect-hosts=<프론트 호스트>
-duri.invite.base-url=<프론트 주소>/invite
-```
-
-프론트는 `VITE_API_BASE_URL` 에 백엔드 주소를 넣고 다시 빌드한다. 빌드 시점에 박히는 값이다.
 
 GitHub Actions(`.github/workflows/ci.yml`)가 푸시·PR마다 `./gradlew build` 를 돌린다.
 Testcontainers가 러너의 Docker로 실제 PostgreSQL을 띄우므로 별도 서비스 설정이 필요 없다.

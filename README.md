@@ -450,9 +450,30 @@ COOKIE_SECURE=true
 - **`OAUTH2_ALLOWED_REDIRECT_HOSTS`** — 여기 없는 호스트를 `OAUTH2_REDIRECT_URI`에 넣으면
   부팅 때 바로 죽는다. 설정 실수로 로그인 결과가 엉뚱한 곳으로 흘러가는 것을 막기 위한 검사다.
 
-### 로컬에서 확인하기
+### 로컬에서 배포판 그대로 띄워 보기
 
-배포 전에 같은 설정으로 컨테이너를 띄워 볼 수 있다.
+Railway·Vercel에 올리기 전에, 같은 모양으로 로컬에서 돌려 볼 수 있다.
+
+```bash
+docker compose -f compose.deploy.yaml up --build
+```
+
+프론트 `localhost:3100`, 백엔드 `localhost:8080`, DB는 호스트로 내보내지 않는다.
+포트는 `WEB_PORT`로 바꾼다 — 3000은 다른 개발 서버가 쓰는 일이 잦아 기본값을 3100으로 두었다.
+
+`compose.yaml`과 나눈 이유: 그쪽은 `bootRun`이 자동으로 띄우는 개발용 DB 하나뿐이다.
+여기에 백엔드까지 넣으면 개발 중에 컨테이너 백엔드가 같이 떠서 포트를 다툰다.
+
+프론트는 nginx로 서빙하고 `web/nginx.conf`가 `vercel.json`의 규칙을 그대로 옮겼다 —
+SPA 폴백, `sw.js` 무캐시, `/assets/*` 영구 캐시. 로컬과 실제 배포가 다르게 동작하면
+여기서 확인한 의미가 없기 때문이다.
+
+**로컬로는 확인되지 않는 것이 하나 있다.** `localhost:3100`과 `localhost:8080`은
+포트만 다를 뿐 같은 사이트라(SameSite는 포트를 보지 않는다) 쿠키가 교차 사이트 취급을
+받지 않는다. Vercel↔Railway는 진짜로 다른 사이트라 `SameSite=None; Secure`가
+실제로 필요한지는 배포해 봐야 안다. 로컬에서도 그 값을 켜 두는 것은 그래서다.
+
+백엔드 이미지만 따로 빌드하려면:
 
 ```bash
 docker build -t duri .

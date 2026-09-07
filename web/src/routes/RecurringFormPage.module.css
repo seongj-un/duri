@@ -1,0 +1,96 @@
+.amountBlock {
+  margin: var(--space-5) 0 var(--space-6);
+}
+
+.amountLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin-bottom: var(--space-2);
+}
+
+.group {
+  margin-bottom: var(--space-6);
+}
+
+.groupLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.custom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.slider {
+  flex: 1;
+  accent-color: var(--brand);
+}
+
+.customValue {
+  min-width: 52px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 비율을 바꿀 때마다 실제 나뉘는 금액이 보여야 한다. 퍼센트만으로는 감이 안 온다. */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--r-field);
+  background: var(--ink-soft);
+}
+
+.splitCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.splitCell:last-child {
+  text-align: right;
+}
+
+.splitName {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.dayRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dayPrefix,
+.dayUnit {
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.dayInput {
+  width: 96px;
+}
+
+/* 삭제는 저장 버튼에서 멀리 떨어뜨린다. */
+.danger {
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

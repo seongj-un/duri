@@ -1,0 +1,70 @@
+.lead {
+  margin: var(--space-2) 0 var(--space-5);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  background: var(--surface);
+  border-radius: var(--r-card);
+}
+
+/* 중지된 것도 목록에서 지우지 않는다. 언제든 되살릴 수 있어야 하기 때문이다. */
+.paused {
+  opacity: 0.6;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  text-align: left;
+}
+
+/* 다음 발생일과 중지 버튼을 한 줄에. 금액은 카드 오른쪽 끝까지 쓰게 둔다. */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.meta {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.next {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.paused .next {
+  color: var(--ink-muted);
+}

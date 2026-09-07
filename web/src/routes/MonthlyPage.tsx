@@ -44,7 +44,15 @@ export function MonthlyPage() {
   )
 
   return (
-    <AppScreen tabBar title="월별 내역">
+    <AppScreen
+      tabBar
+      title="월별 내역"
+      action={
+        <Button variant="ghost" onClick={() => navigate('/trend')}>
+          추이
+        </Button>
+      }
+    >
       <MonthNav period={period} onChange={setPeriod} />
 
       {summary.isPending && <Skeleton card />}

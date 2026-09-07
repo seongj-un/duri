@@ -163,6 +163,35 @@ export interface MonthlySummary {
   settlementStatus: SettlementStatus | null
 }
 
+/**
+ * 최근 몇 달의 지출 추이.
+ *
+ * months 와 같은 순서·길이의 배열로 값이 온다. 지출이 없던 달도 0 으로 채워져 있어
+ * 그래프 축이 끊기지 않는다.
+ */
+export interface CategoryTrend {
+  from: string
+  to: string
+  /** ["2026-04", "2026-05", ...] 오래된 달부터. */
+  months: string[]
+  totalByMonth: number[]
+  totalAmount: number
+  /** 지출이 없던 달까지 포함해 나눈 평균. */
+  monthlyAverage: number
+  categories: CategoryTrendRow[]
+}
+
+export interface CategoryTrendRow {
+  category: ExpenseCategory
+  categoryName: string
+  totalAmount: number
+  /** months 와 같은 순서·길이. */
+  monthlyAmounts: number[]
+  ratio: number
+  /** 이 카테고리를 가장 많이 쓴 달. 지출이 없으면 null. */
+  peakMonth: string | null
+}
+
 export interface TransferGuide {
   bank: Bank
   bankName: string

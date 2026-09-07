@@ -2,6 +2,7 @@ import { request } from './client'
 import type {
   Account,
   AccountRequest,
+  CategoryTrend,
   Couple,
   Expense,
   ExpenseCreateRequest,
@@ -69,6 +70,10 @@ export const summariesApi = {
   /** 월별 화면 한 장 분량: 합계 · 사람별 부담 · 카테고리 비중 · 순잔액. */
   monthly: (period?: string) =>
     request<MonthlySummary>('/api/v1/summaries/monthly', { query: { period } }),
+
+  /** 최근 months 개월치 추이. until 을 생략하면 백엔드가 이번 달까지 본다. */
+  trend: (params: { until?: string; months?: number } = {}) =>
+    request<CategoryTrend>('/api/v1/summaries/trend', { query: params }),
 }
 
 export const settlementsApi = {

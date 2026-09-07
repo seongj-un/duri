@@ -3,6 +3,8 @@ import { FullPageSpinner } from './components/FullPageSpinner'
 import { useSession } from './lib/auth/SessionProvider'
 import { useCoupleEvents } from './lib/realtime/useCoupleEvents'
 import { AccountPage } from './routes/AccountPage'
+import { NotificationsPage } from './routes/NotificationsPage'
+import { TrendPage } from './routes/TrendPage'
 import { ExpenseCreatePage } from './routes/ExpenseCreatePage'
 import { HomePage } from './routes/HomePage'
 import { InviteAcceptPage } from './routes/InviteAcceptPage'
@@ -50,6 +52,8 @@ export function App() {
           <Route path="/settlement" element={<SettlementPage />} />
           <Route path="/expenses/new" element={<ExpenseCreatePage />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/trend" element={<TrendPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
 

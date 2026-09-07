@@ -37,12 +37,12 @@ export function ExpenseCreatePage() {
   const payer = payerId === me.userId ? me : partner
   const other = payerId === me.userId ? partner : me
 
-  // Expense.payerShare / partnerShare 와 같은 식으로 계산한다.
-  // 결제자 몫을 먼저 내림하므로 나누어떨어지지 않는 1원은 상대에게 간다.
+  // Expense.partnerShare / payerShare 와 같은 식으로 계산한다.
+  // 상대 몫을 먼저 내림하므로 나누어떨어지지 않는 1원은 결제자가 흡수한다.
   const split = useMemo(() => {
     const total = amount === '' ? 0 : amount
-    const payerShare = Math.floor((total * payerBurdenRate) / 100)
-    return { payerShare, partnerShare: total - payerShare }
+    const partnerShare = Math.floor((total * (100 - payerBurdenRate)) / 100)
+    return { payerShare: total - partnerShare, partnerShare }
   }, [amount, payerBurdenRate])
 
   const create = useMutation({

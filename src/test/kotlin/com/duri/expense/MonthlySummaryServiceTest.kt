@@ -179,7 +179,7 @@ class MonthlySummaryServiceTest(
 
     @Test
     fun `나누어떨어지지 않는 금액은 1원 단위까지 보존된다`() {
-        // 결제자 몫 5,000 / 상대 몫 5,001
+        // 건별 상대 몫 5,000 / 결제자 몫 5,001 (남는 1원은 결제자가 흡수)
         spend(payerId = couple.ownerId, amount = 10_001, rate = 50)
         spend(payerId = couple.ownerId, amount = 10_001, rate = 50)
         spend(payerId = couple.ownerId, amount = 10_001, rate = 50)
@@ -189,10 +189,10 @@ class MonthlySummaryServiceTest(
         val partner = summary.members.first { it.member.userId == couple.partnerId }
 
         assertThat(summary.totalAmount).isEqualTo(30_003)
-        assertThat(owner.burdenAmount).isEqualTo(15_000)
-        assertThat(partner.burdenAmount).isEqualTo(15_003)
+        assertThat(owner.burdenAmount).isEqualTo(15_003)
+        assertThat(partner.burdenAmount).isEqualTo(15_000)
         // 건별로 계산해 합친 값과 일치해야 한다 (합계를 먼저 내고 비율을 곱하면 15,001.5 가 된다)
-        assertThat(summary.balance.netAmount).isEqualTo(15_003)
+        assertThat(summary.balance.netAmount).isEqualTo(15_000)
     }
 
     @Test

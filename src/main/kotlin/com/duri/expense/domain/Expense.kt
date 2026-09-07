@@ -18,8 +18,9 @@ import java.time.LocalDate
 /**
  * 지출 한 건.
  *
- * 금액은 원 단위 정수로만 다룬다. 부담 비율을 곱한 뒤 남는 1원은
- * [partnerShare] 에서 내림 처리되어 결제자가 흡수한다.
+ * 금액은 원 단위 정수로만 다룬다. 먼저 [partnerShare] 를 내림으로 구하고
+ * 남는 1원은 [payerShare] 로 몰아, 돈을 먼저 낸 결제자가 흡수하게 한다.
+ * 반대로 결제자 몫을 먼저 내림하면 "반반" 인데도 상대가 절반을 넘게 갚는다.
  */
 @Entity
 @Table(name = "expenses")
@@ -68,11 +69,11 @@ class Expense(
     val isDeleted: Boolean get() = deletedAt != null
     val isGenerated: Boolean get() = recurringExpenseId != null
 
-    /** 결제자가 실제로 부담해야 할 몫. */
-    val payerShare: Long get() = amount * payerBurdenRate / HUNDRED
+    /** 상대가 결제자에게 갚아야 할 몫. 내림이므로 명목 비율을 넘지 않는다. */
+    val partnerShare: Long get() = amount * (HUNDRED - payerBurdenRate) / HUNDRED
 
-    /** 상대가 결제자에게 갚아야 할 몫. 나머지 1원은 결제자가 부담한다. */
-    val partnerShare: Long get() = amount - payerShare
+    /** 결제자가 실제로 부담해야 할 몫. 나누어떨어지지 않고 남는 1원은 결제자가 부담한다. */
+    val payerShare: Long get() = amount - partnerShare
 
     fun lockTo(settlementId: Long) {
         this.settlementId = settlementId

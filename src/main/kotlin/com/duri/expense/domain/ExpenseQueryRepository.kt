@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository
 /**
  * 월별 뷰가 필요로 하는 조회·집계를 모아 둔다.
  *
- * 부담 몫은 DB 에서 계산한다. Expense.payerShare 와 같은 식(정수 나눗셈, 내림)을 쓰므로
+ * 부담 몫은 DB 에서 계산한다. Expense.partnerShare 와 같은 식(정수 나눗셈, 내림)을 쓰므로
  * 건별로 계산해 합친 값과 결과가 일치한다. 합계를 먼저 내고 비율을 곱하면
  * 반올림 위치가 달라져 1원씩 어긋난다.
  */
@@ -24,18 +24,18 @@ class ExpenseQueryRepository(
 
     private val expense = QExpense.expense
 
-    /** amount * rate / 100 (정수 나눗셈) */
-    private val payerShare: NumberExpression<Long> = Expressions.numberTemplate(
+    /** amount * (100 - rate) / 100 (정수 나눗셈). 엔티티와 같이 상대 몫을 먼저 내림한다. */
+    private val partnerShare: NumberExpression<Long> = Expressions.numberTemplate(
         Long::class.java,
-        "({0} * {1} / 100)",
+        "({0} * (100 - {1}) / 100)",
         expense.amount,
         expense.payerBurdenRate,
     )
 
-    /** amount - payerShare. 나누어떨어지지 않고 남는 1원은 상대 몫으로 간다. */
-    private val partnerShare: NumberExpression<Long> = Expressions.numberTemplate(
+    /** amount - partnerShare. 나누어떨어지지 않고 남는 1원은 결제자가 흡수한다. */
+    private val payerShare: NumberExpression<Long> = Expressions.numberTemplate(
         Long::class.java,
-        "({0} - ({0} * {1} / 100))",
+        "({0} - ({0} * (100 - {1}) / 100))",
         expense.amount,
         expense.payerBurdenRate,
     )

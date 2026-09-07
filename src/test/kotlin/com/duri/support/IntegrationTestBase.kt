@@ -7,7 +7,8 @@ import org.springframework.context.annotation.Import
 import org.springframework.test.context.TestConstructor
 import java.time.Clock
 
-@SpringBootTest
+// 스케줄러는 테스트에서 직접 호출한다. "-" 는 스프링에서 비활성화를 뜻한다.
+@SpringBootTest(properties = ["duri.recurring.cron=-"])
 @Import(TestcontainersConfig::class, TestClockConfig::class, DatabaseCleaner::class, CoupleFixture::class)
 // 하위 테스트가 생성자 파라미터마다 @Autowired 를 달지 않아도 되게 한다
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)

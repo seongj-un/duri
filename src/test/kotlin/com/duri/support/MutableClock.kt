@@ -8,7 +8,7 @@ import java.time.ZoneId
 /** 만료·회전처럼 시간이 규칙인 로직을 검증하기 위해 시간을 직접 움직인다. */
 class MutableClock(
     private var instant: Instant = Instant.parse("2026-01-01T00:00:00Z"),
-    private val zone: ZoneId = ZoneId.of("UTC"),
+    private val zone: ZoneId = ZoneId.of("Asia/Seoul"),
 ) : Clock() {
 
     override fun getZone(): ZoneId = zone

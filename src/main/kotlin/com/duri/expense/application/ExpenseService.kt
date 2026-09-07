@@ -22,6 +22,7 @@ class ExpenseService(
     private val expenseRepository: ExpenseRepository,
     private val settlementRepository: SettlementRepository,
     private val coupleContextLoader: CoupleContextLoader,
+    private val burdenPresetService: BurdenPresetService,
     private val clock: Clock,
 ) {
 
@@ -34,13 +35,18 @@ class ExpenseService(
         context.requirePayer(payerId)
         requirePeriodOpen(context.coupleId, spentAt)
 
+        val category = requireNotNull(request.category)
+        // 비율을 안 보냈으면 카테고리 프리셋을 따른다
+        val burdenRate = request.payerBurdenRate?.toShort()
+            ?: burdenPresetService.payerBurdenRateFor(context, category, payerId)
+
         val expense = expenseRepository.save(
             Expense(
                 couple = context.couple,
                 payerId = payerId,
                 amount = requireNotNull(request.amount),
-                category = requireNotNull(request.category),
-                payerBurdenRate = request.payerBurdenRate.toShort(),
+                category = category,
+                payerBurdenRate = burdenRate,
                 spentAt = spentAt,
                 memo = request.memo?.takeIf { it.isNotBlank() },
                 createdBy = userId,

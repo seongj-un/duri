@@ -49,6 +49,10 @@ class Expense(
 
     @Column(name = "created_by", nullable = false, updatable = false)
     val createdBy: Long,
+
+    /** 반복지출에서 자동 생성된 건이면 그 정의를 가리킨다. 사람이 넣은 건은 null. */
+    @Column(name = "recurring_expense_id", updatable = false)
+    val recurringExpenseId: Long? = null,
 ) : BaseTimeEntity() {
 
     /** 확정된 정산에 귀속되면 채워지고, 그 뒤로는 수정·삭제가 잠긴다. */
@@ -62,6 +66,7 @@ class Expense(
 
     val isLocked: Boolean get() = settlementId != null
     val isDeleted: Boolean get() = deletedAt != null
+    val isGenerated: Boolean get() = recurringExpenseId != null
 
     /** 결제자가 실제로 부담해야 할 몫. */
     val payerShare: Long get() = amount * payerBurdenRate / HUNDRED

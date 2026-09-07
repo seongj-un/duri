@@ -89,6 +89,9 @@ duri:
     allowed-redirect-hosts:
       - localhost
       - 127.0.0.1
+  recurring:
+    # 매일 00:10(KST). 자정 직후에 그날치 반복지출을 만든다.
+    cron: ${RECURRING_CRON:0 10 0 * * *}
   invite:
     ttl: P7D
     base-url: ${INVITE_BASE_URL:http://localhost:3000/invite}

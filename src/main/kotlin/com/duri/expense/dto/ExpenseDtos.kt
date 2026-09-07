@@ -22,10 +22,13 @@ data class ExpenseCreateRequest(
     @field:NotNull(message = "카테고리를 선택해 주세요.")
     val category: ExpenseCategory?,
 
-    /** 결제자 본인이 부담할 비율(%). 기본 반반. */
+    /**
+     * 결제자 본인이 부담할 비율(%).
+     * 생략하면 카테고리별 프리셋을 따르고, 프리셋도 없으면 반반이다.
+     */
     @field:Min(value = 0, message = "부담 비율은 0 이상이어야 합니다.")
     @field:Max(value = 100, message = "부담 비율은 100 이하여야 합니다.")
-    val payerBurdenRate: Int = DEFAULT_BURDEN_RATE,
+    val payerBurdenRate: Int? = null,
 
     @field:NotNull(message = "지출 날짜를 입력해 주세요.")
     @field:DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -33,11 +36,7 @@ data class ExpenseCreateRequest(
 
     @field:Size(max = 255, message = "메모는 255자 이하로 입력해 주세요.")
     val memo: String? = null,
-) {
-    companion object {
-        const val DEFAULT_BURDEN_RATE = 50
-    }
-}
+)
 
 /** PATCH. null 인 필드는 "변경 없음"을 뜻한다. */
 data class ExpenseUpdateRequest(

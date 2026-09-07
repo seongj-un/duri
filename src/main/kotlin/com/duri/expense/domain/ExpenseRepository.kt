@@ -12,6 +12,19 @@ interface ExpenseRepository : JpaRepository<Expense, Long> {
     fun findByIdAndCoupleId(id: Long, coupleId: Long): Expense?
 
     /**
+     * 이 반복지출이 해당 기간에 이미 생성됐는지.
+     * 사용자가 지운 건(deleted_at)도 "생성됨"으로 본다. 지운 것을 되살리면 안 되기 때문이다.
+     */
+    fun existsByRecurringExpenseIdAndSpentAtBetween(
+        recurringExpenseId: Long,
+        from: LocalDate,
+        to: LocalDate,
+    ): Boolean
+
+    /** 이 반복지출에서 만들어진 지출이 하나라도 있는지. 정의를 지워도 되는지 판단한다. */
+    fun existsByRecurringExpenseId(recurringExpenseId: Long): Boolean
+
+    /**
      * 정산이 확정되는 순간 그 달의 지출을 한 번에 귀속시킨다.
      * 이후 이 건들은 settlement_id 가 채워져 수정·삭제가 잠긴다.
      *

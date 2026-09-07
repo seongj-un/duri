@@ -13,6 +13,8 @@ export const queryKeys = {
   /** 뱃지는 개수만 필요해 1건만, 목록은 넉넉히 받는다. 둘 다 위 접두사에 걸린다. */
   notificationList: (size: number) => ['notifications', 'list', size] as const,
   settlementHistory: ['settlements', 'history'] as const,
+  recurringExpenses: ['recurring-expenses'] as const,
+  burdenPresets: ['burden-presets'] as const,
 
   summary: (period: string) => ['summary', period] as const,
   trend: (until: string, months: number) => ['trend', until, months] as const,

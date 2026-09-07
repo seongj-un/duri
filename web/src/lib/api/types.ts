@@ -192,6 +192,64 @@ export interface CategoryTrendRow {
   peakMonth: string | null
 }
 
+/** 월세·공과금·구독처럼 매달 반복되는 지출의 정의. 실제 지출은 서버 스케줄러가 만든다. */
+export interface RecurringExpense {
+  recurringExpenseId: number
+  payer: MemberRef
+  title: string
+  amount: number
+  category: ExpenseCategory
+  categoryName: string
+  payerBurdenRate: number
+  /** 매월 며칠. 없는 달이 생기지 않도록 1~28 로 제한된다. */
+  dayOfMonth: number
+  startsOn: string
+  endsOn: string | null
+  memo: string | null
+  active: boolean
+  /** 다음으로 지출이 만들어질 날. 더 만들 것이 없으면 null. */
+  nextDueDate: string | null
+}
+
+export interface RecurringExpenseCreateRequest {
+  payerId: number
+  title: string
+  amount: number
+  category: ExpenseCategory
+  /** 생략하면 카테고리 프리셋을 따른다. 등록 시점에 확정되어 저장된다. */
+  payerBurdenRate?: number | null
+  dayOfMonth: number
+  startsOn?: string | null
+  endsOn?: string | null
+  memo?: string | null
+}
+
+/** null 인 필드는 "변경 없음"이다. */
+export type RecurringExpenseUpdateRequest = Partial<RecurringExpenseCreateRequest>
+
+/**
+ * 카테고리별 기본 부담 비율.
+ *
+ * 비율은 결제자 기준이 아니라 사람 기준이다. "월세는 성준 30%" 는
+ * 이번 달 카드가 누구 것이든 그대로 유지된다.
+ */
+export interface BurdenPreset {
+  category: ExpenseCategory
+  categoryName: string
+  rates: MemberBurdenRate[]
+  /** false 면 저장된 값 없이 기본(반반)을 보여주는 중이다. */
+  customized: boolean
+}
+
+export interface MemberBurdenRate {
+  member: MemberRef
+  burdenRate: number
+}
+
+export interface BurdenPresetUpdateRequest {
+  presets: { category: ExpenseCategory; userId: number; burdenRate: number }[]
+}
+
 export interface TransferGuide {
   bank: Bank
   bankName: string

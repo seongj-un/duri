@@ -2,6 +2,8 @@ import { request } from './client'
 import type {
   Account,
   AccountRequest,
+  BurdenPreset,
+  BurdenPresetUpdateRequest,
   CategoryTrend,
   Couple,
   Expense,
@@ -14,6 +16,9 @@ import type {
   MonthlySummary,
   Notification,
   NotificationPage,
+  RecurringExpense,
+  RecurringExpenseCreateRequest,
+  RecurringExpenseUpdateRequest,
   Settlement,
   SettlementHistory,
 } from './types'
@@ -85,6 +90,38 @@ export const settlementsApi = {
   /** 멱등하다. 두 사람이 동시에 눌러도 결과가 같다. */
   confirm: (period: string) =>
     request<Settlement>(`/api/v1/settlements/${period}/confirm`, { method: 'POST' }),
+}
+
+export const recurringExpensesApi = {
+  list: () => request<RecurringExpense[]>('/api/v1/recurring-expenses'),
+
+  create: (body: RecurringExpenseCreateRequest) =>
+    request<RecurringExpense>('/api/v1/recurring-expenses', { method: 'POST', body }),
+
+  update: (recurringExpenseId: number, body: RecurringExpenseUpdateRequest) =>
+    request<RecurringExpense>(`/api/v1/recurring-expenses/${recurringExpenseId}`, {
+      method: 'PATCH',
+      body,
+    }),
+
+  /** 중지. 이미 만들어진 지출은 그대로 두고 다음 달부터 만들지 않는다. */
+  setActive: (recurringExpenseId: number, active: boolean) =>
+    request<RecurringExpense>(
+      `/api/v1/recurring-expenses/${recurringExpenseId}/${active ? 'activate' : 'deactivate'}`,
+      { method: 'POST' },
+    ),
+
+  /** 아직 아무 지출도 만들지 않은 정의만 지울 수 있다. 그 외에는 409 로 중지를 안내한다. */
+  remove: (recurringExpenseId: number) =>
+    request<void>(`/api/v1/recurring-expenses/${recurringExpenseId}`, { method: 'DELETE' }),
+}
+
+export const burdenPresetsApi = {
+  /** 저장된 것만이 아니라 전체 카테고리가 온다. 저장 전이면 반반으로 보인다. */
+  list: () => request<BurdenPreset[]>('/api/v1/couples/me/burden-presets'),
+
+  save: (body: BurdenPresetUpdateRequest) =>
+    request<BurdenPreset[]>('/api/v1/couples/me/burden-presets', { method: 'PUT', body }),
 }
 
 export const notificationsApi = {

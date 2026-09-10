@@ -28,9 +28,8 @@ dependencies {
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    // --- security: OAuth2 login(kakao/google) + JWT resource server ---
+    // --- security: 자체 로그인(bcrypt) + JWT resource server ---
     implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
     // --- persistence ---

@@ -9,7 +9,6 @@
 #   docker compose -f compose.deploy.yaml up --build
 #
 # 프론트 포트는 WEB_PORT 로 바꾼다(기본 3100). 3000 은 다른 개발 서버가 쓰는 일이 잦다.
-# 카카오·구글 키가 .env 에 없으면 앱은 뜨지만 로그인은 되지 않는다.
 
 name: duri-deploy
 
@@ -48,19 +47,12 @@ services:
       JWT_SECRET: ${JWT_SECRET:-ZHVyaS1kZXYtb25seS1qd3Qtc2VjcmV0LTMyYnl0ZXM=}
       ACCOUNT_ENCRYPTION_KEY: ${ACCOUNT_ENCRYPTION_KEY:-ZHVyaS1kZXYtb25seS1hY2NvdW50LWtleS0zMmJ5dGU=}
 
-      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-unset-kakao-client-id}
-      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-unset}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-unset-google-client-id}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-unset}
-
       # 프론트가 다른 오리진이라 Lax 로는 리프레시 쿠키가 실리지 않는다.
       # 브라우저는 localhost 를 보안 컨텍스트로 보므로 http 여도 Secure 쿠키가 통한다.
       COOKIE_SAME_SITE: None
       COOKIE_SECURE: "true"
 
       CORS_ALLOWED_ORIGINS: http://localhost:${WEB_PORT:-3100}
-      OAUTH2_REDIRECT_URI: http://localhost:${WEB_PORT:-3100}/oauth/callback
-      OAUTH2_ALLOWED_REDIRECT_HOSTS: localhost
       INVITE_BASE_URL: http://localhost:${WEB_PORT:-3100}/invite
 
       # 앞에 프록시가 없다. X-Forwarded-* 를 믿을 이유가 없으므로 켜지 않는다.

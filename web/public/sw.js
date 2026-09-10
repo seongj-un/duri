@@ -43,7 +43,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
 
   // API·인증·SSE 는 손대지 않는다. 캐시하지도, 오프라인 대체물을 주지도 않는다.
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/oauth2/') || url.pathname.startsWith('/login/')) {
+  if (url.pathname.startsWith('/api/')) {
     return
   }
 

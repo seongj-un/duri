@@ -34,40 +34,13 @@ spring:
     deserialization:
       fail-on-unknown-properties: false
 
-  security:
-    oauth2:
-      client:
-        registration:
-          kakao:
-            client-name: Kakao
-            client-id: ${KAKAO_CLIENT_ID:unset-kakao-client-id}
-            client-secret: ${KAKAO_CLIENT_SECRET:unset}
-            client-authentication-method: client_secret_post
-            authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope:
-              - profile_nickname
-              - profile_image
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:unset-google-client-id}
-            client-secret: ${GOOGLE_CLIENT_SECRET:unset}
-            scope:
-              - profile
-              - email
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
 
 server:
   # Railway 같은 PaaS 는 PORT 를 주입한다. 없으면 로컬 기본값을 쓴다.
   port: ${PORT:${SERVER_PORT:8080}}
-  # 프록시 뒤에서는 TLS 가 앞단에서 끝나므로, 이 설정이 없으면 OAuth redirect_uri 가
-  # http://내부호스트:포트 로 만들어져 카카오·구글이 거부한다.
-  # 기본값은 none 이다 — 프록시가 없는데 X-Forwarded-* 를 믿으면
-  # 헤더를 위조해 redirect_uri 를 바꿔치기할 수 있다. 프록시 뒤에서만 켠다.
+  # 프록시 뒤에서는 TLS 가 앞단에서 끝난다. 이 설정이 있어야 스킴과 호스트를 원래대로 본다.
+  # 기본값은 none 이다 — 프록시가 없는데 X-Forwarded-* 를 믿으면 헤더 위조에 놀아난다.
+  # 프록시 뒤에서만 켠다.
   forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
   shutdown: graceful
   error:
@@ -90,11 +63,6 @@ duri:
     issuer: duri
     access-token-ttl: PT30M
     refresh-token-ttl: P14D
-  oauth2:
-    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
-    # redirect-uri 의 호스트가 여기 없으면 부팅 때 바로 죽는다.
-    # 설정 실수로 로그인 결과가 엉뚱한 곳으로 흘러가는 것을 막기 위한 검사다.
-    allowed-redirect-hosts: ${OAUTH2_ALLOWED_REDIRECT_HOSTS:localhost,127.0.0.1}
   realtime:
     # 30분마다 끊고 다시 붙게 한다. 죽은 연결이 무한히 쌓이지 않도록.
     timeout: PT30M

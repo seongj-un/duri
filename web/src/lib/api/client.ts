@@ -1,5 +1,5 @@
 import { clearAccessToken, getAccessToken, isAccessTokenUsable, setAccessToken } from '../auth/tokenStore'
-import type { AccessTokenResponse, ErrorBody } from './types'
+import type { AccessTokenResponse, ErrorBody, LoginRequest, SignupRequest } from './types'
 
 /**
  * 개발에서는 빈 문자열이다. Vite 가 /api 를 백엔드로 프록시하므로 같은 오리진으로 나간다.
@@ -73,6 +73,25 @@ export function refreshAccessToken(): Promise<boolean> {
   })()
 
   return inFlightRefresh
+}
+
+/**
+ * 회원가입과 로그인.
+ *
+ * anonymous 로 보내는 이유: 자격증명이 틀리면 401 이 오는데, 그것은 세션 만료가 아니다.
+ * 일반 경로로 보내면 재발급을 시도하고 앱 전체를 로그아웃시켜 버린다.
+ */
+export async function signUp(body: SignupRequest): Promise<void> {
+  await startSession('/api/v1/auth/signup', body)
+}
+
+export async function signIn(body: LoginRequest): Promise<void> {
+  await startSession('/api/v1/auth/login', body)
+}
+
+async function startSession(path: string, body: unknown): Promise<void> {
+  const issued = await request<AccessTokenResponse>(path, { method: 'POST', body, anonymous: true })
+  setAccessToken(issued.accessToken, issued.expiresIn)
 }
 
 export async function logout(): Promise<void> {

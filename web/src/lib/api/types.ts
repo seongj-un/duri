@@ -3,7 +3,6 @@
  * 여기서 필드를 임의로 늘리거나 이름을 바꾸지 않는다 — 바뀌면 백엔드부터 바뀐 것이다.
  */
 
-export type AuthProvider = 'KAKAO' | 'GOOGLE'
 export type CoupleStatus = 'PENDING' | 'ACTIVE' | 'DISBANDED'
 export type MemberRole = 'OWNER' | 'PARTNER'
 export type InviteStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED'
@@ -43,12 +42,22 @@ export interface AccessTokenResponse {
   expiresIn: number
 }
 
+export interface SignupRequest {
+  email: string
+  password: string
+  nickname: string
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
 export interface Me {
   userId: number
   nickname: string
-  email: string | null
+  email: string
   profileImageUrl: string | null
-  provider: AuthProvider
   /** null 이면 아직 커플 space 가 없다 — 온보딩으로 보낸다. */
   coupleId: number | null
 }

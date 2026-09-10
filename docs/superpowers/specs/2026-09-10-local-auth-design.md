@@ -97,6 +97,11 @@ ALTER TABLE users ADD COLUMN password_hash VARCHAR(60) NOT NULL;   -- bcrypt 고
 상한을 두는 이유는 bcrypt 가 72바이트를 넘는 입력을 조용히 잘라내기 때문이다.
 `password_hash` 는 평문 길이와 무관하게 항상 60자다.
 
+### 이메일 정규화
+
+저장과 조회 모두 `trim().lowercase()` 를 거친다. 대소문자만 다른 이메일로 계정이
+둘 생기면 사용자는 왜 로그인이 안 되는지 알 수 없다.
+
 ### 도메인
 
 `User.register` 의 시그니처가 바뀐다.
@@ -167,6 +172,14 @@ ErrorCode: UNSUPPORTED_OAUTH_PROVIDER, OAUTH_PROFILE_UNAVAILABLE
   잘못된 자격증명 401
 - 기존 `CoupleFixture` 등 `User.register` 호출부 전면 수정
 - OAuth 관련 기존 테스트 제거
+
+## 구현 중 드러난 것
+
+- `ErrorResponse.timestamp` 가 주입된 `Clock` 이 아니라 `Instant.now()` 를 쓴다.
+  그래서 두 응답의 본문을 통째로 비교할 수 없다. 이번 범위에서는 손대지 않고,
+  "가입 여부가 새어나가지 않는다" 테스트는 timestamp 를 뺀 나머지를 비교한다.
+- `build/` 에 `* 2.class` 형태의 중복 산출물이 쌓여 테스트 실행이 깨지는 일이 있다.
+  프로젝트가 iCloud 동기화되는 Desktop 아래 있어서다. `./gradlew clean` 으로 푼다.
 
 ## 미결 사항
 

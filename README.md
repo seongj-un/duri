@@ -3,7 +3,7 @@
 커플 2인 전용 공동생활비·데이트비용 정산 웹앱.
 
 월세·공과금·장보기·데이트비를 나눠 낼 때 "누가 얼마 냈지"를 없애는 것이 목표다.
-소셜 로그인으로 둘이 같은 space를 쓰고, 지출을 기록하면 실시간 순잔액이 뜨며, 월말에 정산을 확정한다.
+이메일로 가입해 둘이 같은 space를 쓰고, 지출을 기록하면 실시간 순잔액이 뜨며, 월말에 정산을 확정한다.
 
 **[pairpay-two.vercel.app](https://pairpay-two.vercel.app)** — 프론트엔드만 올라가 있다.
 백엔드는 아직 어디에도 떠 있지 않아 로그인은 동작하지 않는다([배포](#배포) 참고).
@@ -28,7 +28,7 @@
 |---|---|
 | **백엔드** | Kotlin 2.3.21 / Java 17 · Spring Boot 4.1.1 (Framework 7, Security 7) |
 | 영속성 | Spring Data JPA (Hibernate 7) + QueryDSL 5.1.0 · PostgreSQL 17 · Flyway 12 |
-| 백엔드 테스트 | JUnit 5 + Testcontainers 2 (실제 PostgreSQL) — 166개 |
+| 백엔드 테스트 | JUnit 5 + Testcontainers 2 (실제 PostgreSQL) — 178개 |
 | 백엔드 빌드 | Gradle 9.7.1 (Kotlin DSL) |
 | **프론트엔드** | React 19 + TypeScript · Vite 6 |
 | 상태 · 라우팅 | TanStack Query 5 · React Router 7 |
@@ -59,33 +59,29 @@ docker compose up -d
 cd web && npm install && npm run dev
 ```
 
-**포트 3000은 고정이다.** 백엔드가 CORS 허용 오리진·OAuth 착지 주소·초대 링크를 모두
-`http://localhost:3000`으로 잡아 두었기 때문이다. 개발 서버는 `/api`·`/oauth2`·`/login/oauth2`를
-`:8080`으로 프록시한다. 같은 오리진이 되므로 리프레시 쿠키(`path=/api/v1/auth`, `SameSite=Lax`)가
+**포트 3000은 고정이다.** 백엔드가 CORS 허용 오리진과 초대 링크를 모두
+`http://localhost:3000`으로 잡아 두었기 때문이다. 개발 서버는 `/api`를 `:8080`으로 프록시한다.
+같은 오리진이 되므로 리프레시 쿠키(`path=/api/v1/auth`, `SameSite=Lax`)가
 자격증명 설정 없이 그대로 실려 간다.
 
-### 소셜 로그인 설정
+### 시크릿 설정
 
-기본값은 개발용 더미라 로그인 자체는 동작하지 않는다. 실제로 붙이려면:
+로컬은 개발용 기본값이 박혀 있어 아무것도 넣지 않아도 회원가입·로그인이 그대로 동작한다.
+외부 콘솔에 등록할 것도 없다. 다만 **운영에서는 두 값을 반드시 주입한다.**
 
 ```bash
 cp .env.example .env
 ```
 
-`.env`를 채운 뒤 환경변수로 넣고 실행한다. 키 생성:
-
-```bash
-openssl rand -base64 48
-```
-
-- 카카오: [developers.kakao.com](https://developers.kakao.com) → 내 애플리케이션 → REST API 키 / Client Secret
-- 구글: [console.cloud.google.com](https://console.cloud.google.com) → API 및 서비스 → 사용자 인증 정보
-- 두 곳 모두 리다이렉트 URI에 `http://localhost:8080/login/oauth2/code/{kakao|google}` 등록
+| 변수 | 쓰임 | 생성 |
+|---|---|---|
+| `JWT_SECRET` | 액세스 토큰 HS256 서명 키 (최소 32바이트) | `openssl rand -base64 48` |
+| `ACCOUNT_ENCRYPTION_KEY` | 계좌번호 AES-256 암호화 키 (32바이트 base64) | `openssl rand -base64 32` |
 
 ### 테스트
 
 ```bash
-./gradlew test          # 백엔드 166개
+./gradlew test          # 백엔드 178개
 cd web && npm run build # 프론트 타입체크 + 번들
 ```
 
@@ -98,8 +94,7 @@ cd web && npm run build # 프론트 타입체크 + 번들
 
 | 화면 | 경로 | 하는 일 |
 |---|---|---|
-| 로그인 | `/login` | 카카오·구글 |
-| OAuth 착지 | `/oauth/callback` | 리프레시 쿠키로 액세스 토큰 교환 |
+| 로그인 | `/login` | 이메일·비밀번호. 로그인/회원가입 탭 전환 |
 | space 만들기 | `/onboarding` | 커플 없는 사용자의 첫 화면 |
 | 파트너 연결 | `/link` | 초대 링크 발급·공유, 연결 대기 |
 | 초대 수락 | `/invite/:token` | 로그인 전에도 열린다 |
@@ -123,36 +118,47 @@ cd web && npm run build # 프론트 타입체크 + 번들
 
 ## 인증 흐름
 
-액세스 토큰은 JWT(HS256), 리프레시 토큰은 DB에 해시로만 저장하는 불투명 난수다.
+신원 확인은 자체 이메일 + 비밀번호다. 액세스 토큰은 JWT(HS256),
+리프레시 토큰은 DB에 해시로만 저장하는 불투명 난수다.
+전환의 근거는 `docs/superpowers/specs/2026-09-10-local-auth-design.md` 에 있다.
 
 ```
-브라우저                       서버                        카카오/구글
-   │                           │                              │
-   │ GET /oauth2/authorization/kakao                          │
-   ├──────────────────────────>│───── 302 ───────────────────>│
-   │                           │<──── code ───────────────────┤
-   │                           │
-   │   Set-Cookie: duri_rt (HttpOnly)  +  302 → 프론트엔드
-   │<──────────────────────────┤
+브라우저                                  서버
+   │                                       │
+   │ POST /api/v1/auth/signup  {email, password, nickname}   (201)
+   │ POST /api/v1/auth/login   {email, password}             (200)
+   ├──────────────────────────────────────>│  bcrypt 로 대조
+   │                                       │
+   │   accessToken  +  Set-Cookie: duri_rt (HttpOnly)
+   │<──────────────────────────────────────┤
    │
    │ POST /api/v1/auth/token   (쿠키 자동 전송)
-   ├──────────────────────────>│
-   │<── accessToken + 새 duri_rt ──┤   ← 호출할 때마다 리프레시 토큰이 회전한다
+   ├──────────────────────────────────────>│
+   │<── accessToken + 새 duri_rt ──────────┤   ← 호출할 때마다 리프레시 토큰이 회전한다
    │
    │ Authorization: Bearer <accessToken>
-   ├──────────────────────────>│
+   ├──────────────────────────────────────>│
 ```
+
+가입은 곧바로 로그인 상태로 만든다. 두 엔드포인트가 내려주는 것은 `/auth/token` 과 같아서
+(응답 본문에 액세스 토큰, `Set-Cookie` 에 리프레시 토큰) 프론트가 토큰을 다루는 방식은 한 가지다.
 
 설계상 결정한 것들:
 
 - **액세스 토큰을 URL에 싣지 않는다.** 주소창·브라우저 히스토리·리퍼러·프록시 로그에 남기 때문이다.
-  로그인 성공 시엔 리프레시 쿠키만 심고, 프론트가 착지 후 `POST /api/v1/auth/token`으로 액세스 토큰을 받아간다.
+  가입·로그인 응답 본문으로만 내려주고, 리프레시 토큰은 HttpOnly 쿠키로만 오간다.
 - **액세스 토큰은 브라우저 메모리에만 둔다.** `localStorage`에 두면 XSS 한 번에 새어 나가고,
   리프레시 쿠키가 HttpOnly라 새로고침 후 되찾을 수 있어 저장할 이유가 없다.
 - **리프레시 토큰 회전 + 재사용 탐지.** 이미 쓴 토큰이 다시 들어오면 탈취로 보고 같은 회전 체인(family) 전체를 폐기한다.
   이 폐기는 요청이 거절되더라도 남아야 하므로 `noRollbackFor`로 처리한다.
   프론트도 같은 이유로 **재발급을 한 번에 하나만** 돌린다 — 여러 요청이 동시에 401을 받아도 진행 중인 Promise를 나눠 쓴다.
-- **필터체인 2개.** 소셜 로그인 핸드셰이크는 state 보관을 위해 세션을 허용하고, 실제 API는 완전 무상태다.
+- **필터체인은 하나.** 로그인을 우리 API로 직접 처리해 리다이렉트 핸드셰이크가 없으므로
+  세션을 쓸 이유가 없다. 전 구간이 완전 무상태이고, Spring Security는 JWT 리소스 서버 역할만 한다.
+- **비밀번호는 bcrypt**(기본 strength 10), 정책은 8자 이상 64자 이하다.
+  상한을 두는 이유는 bcrypt가 72바이트를 넘는 입력을 조용히 잘라내기 때문이다.
+- **로그인 실패는 이유를 구분하지 않는다.** 없는 이메일이든 틀린 비밀번호든 `INVALID_CREDENTIALS`(401)다.
+  나눠 알려주면 그 이메일의 가입 여부가 새어 나간다. 이메일은 소문자로 정규화해 저장하므로
+  대소문자만 다른 계정이 둘 생기지 않는다.
 - **CSRF 비활성화.** 쿠키를 쓰는 곳은 리프레시 경로뿐이고 그 쿠키가 `SameSite=Lax`라 크로스사이트 POST에 실려가지 않는다.
   나머지는 Bearer 헤더 인증이라 CSRF 대상이 아니다.
 
@@ -292,7 +298,9 @@ cd web && npm run build # 프론트 타입체크 + 번들
 - **같은 달을 두 번 정산할 수 없다** — `UNIQUE(settlements.couple_id, period)`. 정산 확정 API 멱등성의 근거.
 - **정산 방향의 일관성** — `net_amount = 0`이면 채권자·채무자가 없고, 0이 아니면 둘 다 있으면서 서로 달라야 한다는 체크 제약.
 - **금액은 전부 `BIGINT`(원 단위 정수).** 부동소수점을 쓰지 않는다.
-- **토큰은 원문을 저장하지 않는다.** 초대·리프레시 토큰 모두 SHA-256 해시만 보관한다.
+- **로그인 이메일은 하나뿐** — `users.email` 은 `NOT NULL` + `UNIQUE`. 소문자로 정규화해 넣는다.
+- **토큰과 비밀번호는 원문을 저장하지 않는다.** 초대·리프레시 토큰은 SHA-256 해시만 보관하고,
+  비밀번호는 bcrypt 해시(`password_hash`, 항상 60자)로만 남는다.
 - **계좌번호는 AES-256-GCM으로 암호화**해 저장한다(`EncryptedStringConverter`).
 
 초대 수락 같은 동시성 지점은 세 겹으로 막는다: 초대 행 비관적 락 → 엔티티 상태 검증 → DB 유니크 제약.
@@ -308,7 +316,7 @@ cd web && npm run build # 프론트 타입체크 + 번들
 - **빈 화면은 다음 행동을 준다.** "첫 지출을 추가해 보세요" 처럼. 에러는 사과 대신
   무엇이 잘못됐고 어떻게 고치는지 말한다.
 - **버튼은 하지 않은 일을 말하지 않는다.** 저장 전에는 "변경사항 없음", 저장한 뒤에 "저장됨"이다.
-- **서비스워커는 API 응답을 캐시하지 않는다.** `/api/`·`/oauth2/`·`/login/`은 통과시키고
+- **서비스워커는 API 응답을 캐시하지 않는다.** `/api/`는 손대지 않고 통과시키며
   앱 껍데기와 해시된 정적 자산만 캐시한다. 가계부에서 오래된 금액을 보여주는 건
   아무것도 안 보여주는 것보다 나쁘다 — 오프라인에서 "지난주 순잔액"이 아무 표시 없이 떠 있으면
   그걸로 송금하게 된다.
@@ -321,7 +329,7 @@ cd web && npm run build # 프론트 타입체크 + 번들
 ```
 com.duri
 ├── common/        공통: 에러, 감사 필드, 암호화, 웹 지원
-├── auth/          OAuth2 로그인, JWT 발급, 리프레시 토큰 회전
+├── auth/          이메일/비밀번호 로그인, JWT 발급, 리프레시 토큰 회전
 ├── user/          사용자, 정산 계좌
 ├── couple/        커플 space, 초대 페어링
 ├── expense/       지출, 반복지출, 부담비율 프리셋, 요약·추이
@@ -333,17 +341,18 @@ com.duri
 ```
 web/src
 ├── lib/api/       백엔드 DTO 미러 타입, fetch 클라이언트, 엔드포인트
-├── lib/auth/      토큰 저장소, 세션 컨텍스트
+├── lib/auth/      토큰 저장소, 세션 컨텍스트(가입·로그인·로그아웃)
 ├── lib/realtime/  SSE 구독과 쿼리 무효화
 ├── components/    아바타 · 금액 · 카드 · 칩 · 토글 · 탭바 …
-└── routes/        화면 16개
+└── routes/        화면 15개
 ```
 
 ## API
 
 | 메서드 | 경로 | 인증 | 설명 |
 |---|---|---|---|
-| GET | `/oauth2/authorization/{kakao\|google}` | - | 소셜 로그인 시작 |
+| POST | `/api/v1/auth/signup` | - | 회원가입 (201, 곧바로 로그인 상태) |
+| POST | `/api/v1/auth/login` | - | 로그인 (200) |
 | POST | `/api/v1/auth/token` | 쿠키 | 액세스 토큰 발급/재발급 (리프레시 회전) |
 | POST | `/api/v1/auth/logout` | 쿠키 | 로그아웃 |
 | GET | `/api/v1/users/me` | Bearer | 내 정보 + 소속 커플 id (부트스트랩) |
@@ -420,35 +429,27 @@ DB_PASSWORD=${{Postgres.PGPASSWORD}}
 JWT_SECRET=<openssl rand -base64 48>
 ACCOUNT_ENCRYPTION_KEY=<openssl rand -base64 32>
 
-KAKAO_CLIENT_ID=...
-KAKAO_CLIENT_SECRET=...
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-
 FORWARD_HEADERS_STRATEGY=framework
 CORS_ALLOWED_ORIGINS=https://pairpay-two.vercel.app
-OAUTH2_REDIRECT_URI=https://pairpay-two.vercel.app/oauth/callback
-OAUTH2_ALLOWED_REDIRECT_HOSTS=pairpay-two.vercel.app
 INVITE_BASE_URL=https://pairpay-two.vercel.app/invite
 COOKIE_SAME_SITE=None
 COOKIE_SECURE=true
 ```
 
-`PORT`는 Railway가 알아서 주입한다.
+`PORT`는 Railway가 알아서 주입한다. 외부 인증 공급자가 없으므로 시크릿은 위 두 개가 전부다.
 
-3. 카카오·구글 콘솔의 리다이렉트 URI에 `https://<백엔드도메인>/login/oauth2/code/kakao`(구글도 동일)를 등록한다.
-4. Vercel에 `VITE_API_BASE_URL=https://<백엔드도메인>`을 넣고 다시 배포한다. **빌드 시점에 박히는 값이라 재배포가 필요하다.**
+3. Vercel에 `VITE_API_BASE_URL=https://<백엔드도메인>`을 넣고 다시 배포한다. **빌드 시점에 박히는 값이라 재배포가 필요하다.**
 
 ### 왜 이 값들이 필요한가
 
-- **`FORWARD_HEADERS_STRATEGY=framework`** — 프록시 뒤에서는 TLS가 앞단에서 끝난다. 이게 없으면
-  OAuth `redirect_uri`가 `http://<내부호스트>:<포트>/...`로 만들어져 카카오·구글이 거부한다.
+- **`FORWARD_HEADERS_STRATEGY=framework`** — 프록시 뒤에서는 TLS가 앞단에서 끝난다.
+  이 설정이 있어야 앱이 요청의 스킴과 호스트를 원래대로 본다.
   기본값이 `none`인 것은 의도한 것이다 — 프록시가 없는데 `X-Forwarded-*`를 믿으면
-  헤더를 위조해 리다이렉트 주소를 바꿔치기할 수 있다. 프록시 뒤에서만 켠다.
+  헤더를 위조해 앱이 보는 주소를 바꿔치기할 수 있다. 프록시 뒤에서만 켠다.
 - **`COOKIE_SAME_SITE=None` + `COOKIE_SECURE=true`** — 프론트와 백엔드가 다른 도메인이라
   `Lax`면 리프레시 쿠키가 아예 실리지 않는다.
-- **`OAUTH2_ALLOWED_REDIRECT_HOSTS`** — 여기 없는 호스트를 `OAUTH2_REDIRECT_URI`에 넣으면
-  부팅 때 바로 죽는다. 설정 실수로 로그인 결과가 엉뚱한 곳으로 흘러가는 것을 막기 위한 검사다.
+- **`CORS_ALLOWED_ORIGINS`** — 로그인부터가 브라우저에서 백엔드로 직접 쏘는 XHR이라,
+  프론트 도메인이 여기 없으면 아무것도 시작되지 않는다.
 
 ### 로컬에서 배포판 그대로 띄워 보기
 
@@ -490,7 +491,7 @@ Testcontainers가 러너의 Docker로 실제 PostgreSQL을 띄우므로 별도 �
 3개월 로드맵 기준 **W1–W12 완료**. 백엔드와 프론트엔드 모두 계획한 범위를 채웠다.
 
 - [x] 프로젝트 셋업 (레포·빌드·로컬 인프라)
-- [x] 소셜 로그인 (카카오/구글 OAuth2 + JWT 회전)
+- [x] 자체 로그인 (이메일/비밀번호 + JWT 회전)
 - [x] 커플 space 생성 + 초대 링크 페어링
 - [x] DB 스키마 전체
 - [x] 지출 CRUD + 순잔액 계산 + 월별 뷰 ← **MVP 완료 지점**
@@ -501,7 +502,7 @@ Testcontainers가 러너의 Docker로 실제 PostgreSQL을 띄우므로 별도 �
 - [x] 실시간 동기화 (동시 편집) — SSE
 - [x] 월별 카테고리 통계 + 지출 추이
 - [x] 정산일 리마인드 알림 (인앱)
-- [x] 프론트엔드 화면 16개
+- [x] 프론트엔드 화면 15개
 - [x] PWA (홈 화면 설치 · 오프라인 껍데기)
 - [x] 프론트엔드 배포 (Vercel)
 - [ ] 백엔드 배포 — 호스팅 미정

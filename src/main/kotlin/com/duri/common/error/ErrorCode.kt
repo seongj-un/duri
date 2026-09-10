@@ -19,8 +19,9 @@ enum class ErrorCode(
 
     // 인증
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
-    UNSUPPORTED_OAUTH_PROVIDER(HttpStatus.BAD_REQUEST, "지원하지 않는 로그인 제공자입니다."),
-    OAUTH_PROFILE_UNAVAILABLE(HttpStatus.BAD_REQUEST, "소셜 계정 정보를 가져오지 못했습니다."),
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
+    // 이메일이 없는 경우와 비밀번호가 틀린 경우를 구분하지 않는다. 가입 여부를 흘리지 않기 위해서다.
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
     REFRESH_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다. 다시 로그인해 주세요."),
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다. 다시 로그인해 주세요."),
     REFRESH_TOKEN_REUSED(HttpStatus.UNAUTHORIZED, "보안을 위해 모든 기기에서 로그아웃되었습니다. 다시 로그인해 주세요."),

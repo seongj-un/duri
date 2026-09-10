@@ -1,20 +1,49 @@
-import { useSearchParams } from 'react-router-dom'
-import { API_BASE } from '../lib/api/client'
+import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '../components/Button'
+import { Field, TextInput } from '../components/Field'
+import { SegmentedToggle } from '../components/SegmentedToggle'
 import { InlineError } from '../components/States'
+import { ApiError } from '../lib/api/client'
+import { useSession } from '../lib/auth/SessionProvider'
+import { takePendingInvite } from '../lib/auth/pendingInvite'
 import styles from './LoginPage.module.css'
 
-/**
- * 첫 진입 화면. 로그인 방법 외에는 아무것도 묻지 않는다.
- *
- * 소셜 로그인은 SPA 라우팅이 아니라 실제 페이지 이동이다.
- * 백엔드가 세션에 state 를 보관해야 하고, 돌아올 때 HttpOnly 쿠키를 심어야 하기 때문이다.
- */
-export function LoginPage() {
-  const [params] = useSearchParams()
-  const failed = params.get('status') === 'failure'
+type Mode = 'login' | 'signup'
 
-  const startLogin = (provider: 'kakao' | 'google') => {
-    window.location.href = `${API_BASE}/oauth2/authorization/${provider}`
+/** 첫 진입 화면. 로그인 방법 외에는 아무것도 묻지 않는다. */
+export function LoginPage() {
+  const { signIn, signUp } = useSession()
+  const navigate = useNavigate()
+
+  const [mode, setMode] = useState<Mode>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [nickname, setNickname] = useState('')
+
+  const submit = useMutation({
+    mutationFn: async () => {
+      if (mode === 'login') return signIn({ email: email.trim(), password })
+      return signUp({ email: email.trim(), password, nickname: nickname.trim() })
+    },
+    onSuccess: () => {
+      // 초대 링크를 타고 왔다면 원래 가려던 곳으로 돌려보낸다.
+      const pending = takePendingInvite()
+      navigate(pending ? `/invite/${pending}` : '/', { replace: true })
+    },
+  })
+
+  const error = submit.error instanceof ApiError ? submit.error : null
+  const canSubmit =
+    email.trim().length > 0 &&
+    password.length > 0 &&
+    (mode === 'login' || nickname.trim().length > 0) &&
+    !submit.isPending
+
+  const switchMode = (next: Mode) => {
+    setMode(next)
+    submit.reset()
   }
 
   return (
@@ -33,63 +62,82 @@ export function LoginPage() {
         </p>
       </div>
 
-      {failed && (
-        <div className={styles.failure}>
-          <InlineError error={new Error('로그인이 완료되지 않았어요. 다시 시도해 주세요.')} />
-        </div>
-      )}
+      <form
+        className={styles.form}
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (canSubmit) submit.mutate()
+        }}
+      >
+        <SegmentedToggle
+          label="로그인 또는 회원가입"
+          value={mode}
+          onChange={switchMode}
+          options={[
+            { value: 'login', label: '로그인' },
+            { value: 'signup', label: '회원가입' },
+          ]}
+        />
 
-      <div className={styles.buttons}>
-        <button
-          type="button"
-          className={`${styles.social} ${styles.kakao}`}
-          onClick={() => startLogin('kakao')}
+        <Field label="이메일" error={error?.fieldReason('email')}>
+          {(id) => (
+            <TextInput
+              id={id}
+              type="email"
+              value={email}
+              autoComplete="email"
+              placeholder="you@example.com"
+              invalid={Boolean(error?.fieldReason('email'))}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          )}
+        </Field>
+
+        <Field
+          label="비밀번호"
+          hint={mode === 'signup' ? '8자 이상 64자 이하' : undefined}
+          error={error?.fieldReason('password')}
         >
-          <KakaoMark />
-          카카오로 시작하기
-        </button>
-        <button
-          type="button"
-          className={`${styles.social} ${styles.google}`}
-          onClick={() => startLogin('google')}
-        >
-          <GoogleMark />
-          구글로 시작하기
-        </button>
-      </div>
+          {(id) => (
+            <TextInput
+              id={id}
+              type="password"
+              value={password}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              invalid={Boolean(error?.fieldReason('password'))}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          )}
+        </Field>
+
+        {mode === 'signup' && (
+          <Field label="닉네임" hint="상대에게 보이는 이름이에요" error={error?.fieldReason('nickname')}>
+            {(id) => (
+              <TextInput
+                id={id}
+                value={nickname}
+                maxLength={50}
+                placeholder="성준"
+                invalid={Boolean(error?.fieldReason('nickname'))}
+                onChange={(event) => setNickname(event.target.value)}
+              />
+            )}
+          </Field>
+        )}
+
+        {/* 필드에 붙지 않는 오류(자격증명 불일치, 이메일 중복)는 폼 아래에 한 번만 띄운다. */}
+        {submit.error && !hasFieldError(error) && <InlineError error={submit.error} />}
+
+        <Button type="submit" size="lg" block disabled={!canSubmit} loading={submit.isPending}>
+          {mode === 'login' ? '로그인' : '가입하고 시작하기'}
+        </Button>
+      </form>
 
       <p className={styles.trust}>기록은 우리 둘만 볼 수 있어요.</p>
     </div>
   )
 }
 
-function KakaoMark() {
-  return (
-    <svg width="19" height="19" viewBox="0 0 18 18" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M9 1.8C4.98 1.8 1.8 4.36 1.8 7.5c0 2.03 1.34 3.8 3.35 4.8l-.85 3.1c-.07.26.22.47.45.32l3.7-2.44c.18.01.37.02.55.02 4.02 0 7.2-2.56 7.2-5.8S13.02 1.8 9 1.8Z"
-      />
-    </svg>
-  )
-}
-
-function GoogleMark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
-      />
-      <path
-        fill="#34A853"
-        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z"
-      />
-      <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3-2.33Z" />
-      <path
-        fill="#EA4335"
-        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
-      />
-    </svg>
-  )
+function hasFieldError(error: ApiError | null): boolean {
+  return Boolean(error && error.fieldErrors.length > 0)
 }

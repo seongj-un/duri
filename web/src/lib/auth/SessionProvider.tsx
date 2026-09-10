@@ -1,10 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { logout as callLogout, refreshAccessToken, setSessionEndedListener } from '../api/client'
+import {
+  logout as callLogout,
+  refreshAccessToken,
+  setSessionEndedListener,
+  signIn as callSignIn,
+  signUp as callSignUp,
+} from '../api/client'
 import { couplesApi, usersApi } from '../api/endpoints'
 import { queryKeys } from '../queryKeys'
-import type { Couple, CoupleMember, Me } from '../api/types'
+import type { Couple, CoupleMember, LoginRequest, Me, SignupRequest } from '../api/types'
 
 type SessionState = 'booting' | 'anonymous' | 'authenticated'
 
@@ -14,6 +20,8 @@ interface SessionValue {
   couple: Couple | null
   /** 로딩이 끝나 라우팅 결정을 내려도 되는 시점인지. */
   ready: boolean
+  signUp: (body: SignupRequest) => Promise<void>
+  signIn: (body: LoginRequest) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -63,6 +71,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     staleTime: 60 * 1000,
   })
 
+  const signUp = useCallback(async (body: SignupRequest) => {
+    await callSignUp(body)
+    setState('authenticated')
+  }, [])
+
+  const signIn = useCallback(async (body: LoginRequest) => {
+    await callSignIn(body)
+    setState('authenticated')
+  }, [])
+
   const signOut = useCallback(async () => {
     await callLogout()
     setState('anonymous')
@@ -78,9 +96,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       me: meQuery.data ?? null,
       couple: coupleQuery.data ?? null,
       ready: state !== 'booting' && !waitingForMe && !waitingForCouple,
+      signUp,
+      signIn,
       signOut,
     }
-  }, [state, authenticated, meQuery.isPending, meQuery.data, coupleQuery.isPending, coupleQuery.data, signOut])
+  }, [
+    state,
+    authenticated,
+    meQuery.isPending,
+    meQuery.data,
+    coupleQuery.isPending,
+    coupleQuery.data,
+    signUp,
+    signIn,
+    signOut,
+  ])
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }

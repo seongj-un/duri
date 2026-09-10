@@ -14,7 +14,6 @@ import { HomePage } from './routes/HomePage'
 import { InviteAcceptPage } from './routes/InviteAcceptPage'
 import { LoginPage } from './routes/LoginPage'
 import { MonthlyPage } from './routes/MonthlyPage'
-import { OAuthCallbackPage } from './routes/OAuthCallbackPage'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { PartnerLinkPage } from './routes/PartnerLinkPage'
 import { SettlementPage } from './routes/SettlementPage'
@@ -36,7 +35,6 @@ export function App() {
         path="/login"
         element={authenticated ? <Navigate to="/" replace /> : <LoginPage />}
       />
-      <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
       {/* 초대 미리보기는 로그인 전에도 열린다. 토큰을 가진 것 자체가 열람 권한이다. */}
       <Route path="/invite/:token" element={<InviteAcceptPage />} />
 

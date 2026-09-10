@@ -1,6 +1,5 @@
 package com.duri.user.dto
 
-import com.duri.user.domain.AuthProvider
 import com.duri.user.domain.User
 
 /**
@@ -10,9 +9,8 @@ import com.duri.user.domain.User
 data class MeResponse(
     val userId: Long,
     val nickname: String,
-    val email: String?,
+    val email: String,
     val profileImageUrl: String?,
-    val provider: AuthProvider,
     val coupleId: Long?,
 ) {
     companion object {
@@ -21,7 +19,6 @@ data class MeResponse(
             nickname = user.nickname,
             email = user.email,
             profileImageUrl = user.profileImageUrl,
-            provider = user.provider,
             coupleId = coupleId,
         )
     }

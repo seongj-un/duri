@@ -4,7 +4,6 @@ import { AppScreen } from '../components/AppScreen'
 import { Button } from '../components/Button'
 import { ErrorState, InlineError, Skeleton, SkeletonStack } from '../components/States'
 import { invitesApi } from '../lib/api/endpoints'
-import { API_BASE } from '../lib/api/client'
 import { queryKeys } from '../lib/queryKeys'
 import { useSession } from '../lib/auth/SessionProvider'
 import { rememberPendingInvite } from '../lib/auth/pendingInvite'
@@ -35,10 +34,10 @@ export function InviteAcceptPage() {
     },
   })
 
-  const startLogin = (provider: 'kakao' | 'google') => {
-    // 로그인 왕복을 건너온 뒤 이 초대로 돌아오기 위해 토큰을 남긴다.
+  const startLogin = () => {
+    // 로그인 화면을 다녀온 뒤 이 초대로 돌아오기 위해 토큰을 남긴다.
     rememberPendingInvite(token)
-    window.location.href = `${API_BASE}/oauth2/authorization/${provider}`
+    navigate('/login')
   }
 
   if (preview.isPending) {
@@ -110,14 +109,9 @@ export function InviteAcceptPage() {
               {accept.error && <InlineError error={accept.error} />}
             </>
           ) : (
-            <>
-              <Button size="lg" block onClick={() => startLogin('kakao')}>
-                카카오로 로그인하고 수락
-              </Button>
-              <Button size="lg" variant="ghost" block onClick={() => startLogin('google')}>
-                구글로 로그인하고 수락
-              </Button>
-            </>
+            <Button size="lg" block onClick={startLogin}>
+              로그인하고 수락하기
+            </Button>
           )}
         </div>
 

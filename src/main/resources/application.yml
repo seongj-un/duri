@@ -81,6 +81,13 @@ duri:
     # AES-256-GCM. 운영에서는 반드시 ACCOUNT_ENCRYPTION_KEY 를 주입한다.
     account-key: ${ACCOUNT_ENCRYPTION_KEY:ZHVyaS1kZXYtb25seS1hY2NvdW50LWtleS0zMmJ5dGU=}
   auth:
+    rate-limit:
+      # 커플 둘이 쓰는 앱이다. 사람이 10분에 10번 넘게 로그인을 틀릴 일은 없고,
+      # 반대로 이메일 하나당 10분에 10회면 bcrypt 앞에서 무차별 대입은 성립하지 않는다.
+      window: ${AUTH_RATE_LIMIT_WINDOW:PT10M}
+      max-attempts-per-email: ${AUTH_RATE_LIMIT_PER_EMAIL:10}
+      # 두 사람이 같은 공유기(같은 공인 IP) 뒤에 있을 수 있어 IP 쪽은 넉넉히 잡는다.
+      max-attempts-per-ip: ${AUTH_RATE_LIMIT_PER_IP:30}
     cookie:
       # 프론트와 백엔드가 다른 도메인에 있으면 None + secure 여야 쿠키가 실린다.
       same-site: ${COOKIE_SAME_SITE:Lax}

@@ -2,6 +2,7 @@ package com.duri.common.error
 
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -20,6 +21,18 @@ class GlobalExceptionHandler {
         // 도메인 규칙 위반은 정상적인 흐름이므로 스택트레이스를 남기지 않는다
         log.info("business error: code={} path={} message={}", e.errorCode.code, request.requestURI, e.message)
         return ResponseEntity.status(e.errorCode.status).body(body)
+    }
+
+    /**
+     * BusinessException 의 하위 타입이지만 Retry-After 헤더가 더 붙는다.
+     * 스프링은 더 구체적인 핸들러를 고르므로 위의 handleBusiness 대신 여기로 온다.
+     */
+    @ExceptionHandler(RateLimitedException::class)
+    fun handleRateLimited(e: RateLimitedException, request: HttpServletRequest): ResponseEntity<ErrorResponse> {
+        log.info("rate limited: path={} retryAfterSeconds={}", request.requestURI, e.retryAfter.toSeconds())
+        return ResponseEntity.status(e.errorCode.status)
+            .header(HttpHeaders.RETRY_AFTER, e.retryAfter.toSeconds().toString())
+            .body(ErrorResponse.of(e.errorCode, request.requestURI, e.message))
     }
 
     @ExceptionHandler(MethodArgumentNotValidException::class)

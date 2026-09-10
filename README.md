@@ -28,7 +28,7 @@
 |---|---|
 | **백엔드** | Kotlin 2.3.21 / Java 17 · Spring Boot 4.1.1 (Framework 7, Security 7) |
 | 영속성 | Spring Data JPA (Hibernate 7) + QueryDSL 5.1.0 · PostgreSQL 17 · Flyway 12 |
-| 백엔드 테스트 | JUnit 5 + Testcontainers 2 (실제 PostgreSQL) — 178개 |
+| 백엔드 테스트 | JUnit 5 + Testcontainers 2 (실제 PostgreSQL) — 187개 |
 | 백엔드 빌드 | Gradle 9.7.1 (Kotlin DSL) |
 | **프론트엔드** | React 19 + TypeScript · Vite 6 |
 | 상태 · 라우팅 | TanStack Query 5 · React Router 7 |
@@ -81,7 +81,7 @@ cp .env.example .env
 ### 테스트
 
 ```bash
-./gradlew test          # 백엔드 178개
+./gradlew test          # 백엔드 187개
 cd web && npm run build # 프론트 타입체크 + 번들
 ```
 

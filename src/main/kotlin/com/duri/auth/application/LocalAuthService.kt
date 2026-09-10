@@ -52,6 +52,6 @@ class LocalAuthService(
         return user
     }
 
-    /** 대소문자만 다른 이메일로 계정이 둘 생기지 않게 한다. */
-    private fun normalize(email: String) = email.trim().lowercase()
+    /** 레이트 리밋도 같은 규칙으로 세야 우회할 수 없어 정규화를 한곳에 모아 두었다. */
+    private fun normalize(email: String) = EmailNormalizer.normalize(email)
 }

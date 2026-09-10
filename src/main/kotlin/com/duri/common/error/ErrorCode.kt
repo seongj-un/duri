@@ -25,6 +25,8 @@ enum class ErrorCode(
     REFRESH_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다. 다시 로그인해 주세요."),
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다. 다시 로그인해 주세요."),
     REFRESH_TOKEN_REUSED(HttpStatus.UNAUTHORIZED, "보안을 위해 모든 기기에서 로그아웃되었습니다. 다시 로그인해 주세요."),
+    // 로그인·회원가입 무차별 대입 방어. 얼마나 기다려야 하는지는 Retry-After 헤더로 알린다.
+    TOO_MANY_AUTH_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."),
 
     // 커플 space
     COUPLE_NOT_FOUND(HttpStatus.NOT_FOUND, "커플 space를 찾을 수 없습니다."),

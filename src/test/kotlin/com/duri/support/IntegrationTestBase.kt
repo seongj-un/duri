@@ -1,5 +1,6 @@
 package com.duri.support
 
+import com.duri.auth.application.AuthRateLimiter
 import org.junit.jupiter.api.AfterEach
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -20,11 +21,16 @@ abstract class IntegrationTestBase {
     @Autowired
     protected lateinit var clock: Clock
 
+    /** 인메모리 카운터라 컨텍스트를 공유하는 테스트끼리 새어 나간다. 테스트마다 비운다. */
+    @Autowired
+    protected lateinit var authRateLimiter: AuthRateLimiter
+
     protected val mutableClock: MutableClock get() = clock as MutableClock
 
     @AfterEach
     fun tearDown() {
         databaseCleaner.clean()
+        authRateLimiter.clearAll()
         mutableClock.reset()
     }
 }

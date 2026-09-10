@@ -1,0 +1,7 @@
+/* 부팅에 실패한 상태라 그릴 수 있는 다른 것이 없다. 화면 전체를 쓴다. */
+.wrap {
+  display: grid;
+  place-content: center;
+  min-height: 100dvh;
+  background: var(--bg);
+}

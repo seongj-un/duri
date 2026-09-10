@@ -52,8 +52,10 @@ export function useCoupleEvents(enabled: boolean, myUserId: number | undefined) 
             }
             if (response.status === 401) {
               // 액세스 토큰이 만료된 것뿐이다. 갱신하고 다시 붙는다.
-              const revived = await refreshAccessToken()
-              if (!revived) throw new FatalStreamError('세션이 만료되었습니다.')
+              const outcome = await refreshAccessToken()
+              // 리프레시 토큰이 거절당했을 때만 접는다. 네트워크가 흔들린 것이면 잠시 뒤 다시 붙으면 된다.
+              if (outcome === 'expired') throw new FatalStreamError('세션이 만료되었습니다.')
+              if (outcome === 'offline') throw new Error('재발급이 서버에 닿지 못했습니다. 다시 연결합니다.')
               applyToken()
               throw new Error('토큰을 갱신했습니다. 다시 연결합니다.')
             }

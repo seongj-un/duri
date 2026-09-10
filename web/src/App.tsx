@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { ConnectionLost } from './components/ConnectionLost'
 import { FullPageSpinner } from './components/FullPageSpinner'
 import { useSession } from './lib/auth/SessionProvider'
 import { useCoupleEvents } from './lib/realtime/useCoupleEvents'
@@ -19,10 +20,13 @@ import { PartnerLinkPage } from './routes/PartnerLinkPage'
 import { SettlementPage } from './routes/SettlementPage'
 
 export function App() {
-  const { state, ready, me, couple } = useSession()
+  const { state, ready, retrying, retryBoot, me, couple } = useSession()
 
   // 스트림은 두 사람이 연결된 뒤에만 열린다. 그전에는 붙어도 거절당한다.
   useCoupleEvents(couple?.status === 'ACTIVE', me?.userId)
+
+  // 로그인 여부를 아직 모르는 상태다. 로그인 화면으로 보내지 않고 다시 시도할 기회를 준다.
+  if (state === 'offline') return <ConnectionLost onRetry={() => void retryBoot()} retrying={retrying} />
 
   // 어디로 보낼지는 me/couple 이 도착해야 정해진다. 그전에 그리면 화면이 한 번 튄다.
   if (!ready) return <FullPageSpinner />

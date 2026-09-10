@@ -32,6 +32,19 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 요청이 서버에 닿지도 못한 경우.
+ *
+ * 인증 실패와 반드시 구분해야 한다. 응답을 못 받은 것은 "토큰이 죽었다"의 근거가 아니라
+ * "아직 모른다"일 뿐이다. 이걸 401 과 같이 취급하면 지하철에서 앱을 여는 것만으로 로그아웃된다.
+ */
+export class NetworkError extends Error {
+  constructor(cause?: unknown) {
+    super('네트워크에 연결할 수 없어요. 연결을 확인하고 다시 시도해 주세요.', { cause })
+    this.name = 'NetworkError'
+  }
+}
+
 /** 로그인이 끊겼을 때 앱이 로그인 화면으로 빠지도록 알리는 통로. */
 type SessionEndedListener = () => void
 let onSessionEnded: SessionEndedListener = () => {}
@@ -41,14 +54,22 @@ export function setSessionEndedListener(listener: SessionEndedListener): void {
 }
 
 /**
+ * 재발급 결과.
+ *
+ * 'expired' 와 'offline' 을 하나로 뭉치면 안 된다. 앞은 서버가 리프레시 토큰을 거절한 것이고,
+ * 뒤는 서버에게 물어보지도 못한 것이다. 로그아웃해도 되는 쪽은 앞뿐이다.
+ */
+export type RefreshOutcome = 'revived' | 'expired' | 'offline'
+
+/**
  * 리프레시 토큰으로 액세스 토큰을 받아온다.
  *
  * 회전 토큰이라 두 번 부르면 뒤엣것이 재사용으로 탐지되어 family 전체가 폐기된다.
  * 그래서 진행 중인 요청이 있으면 그 Promise 를 나눠 쓴다.
  */
-let inFlightRefresh: Promise<boolean> | null = null
+let inFlightRefresh: Promise<RefreshOutcome> | null = null
 
-export function refreshAccessToken(): Promise<boolean> {
+export function refreshAccessToken(): Promise<RefreshOutcome> {
   if (inFlightRefresh) return inFlightRefresh
 
   inFlightRefresh = (async () => {
@@ -57,16 +78,19 @@ export function refreshAccessToken(): Promise<boolean> {
         method: 'POST',
         credentials: 'include',
       })
+      // 5xx 는 서버가 넘어진 것이지 토큰을 거절한 것이 아니다. 판단을 미룬다.
+      if (response.status >= 500) return 'offline'
       if (!response.ok) {
+        // 서버가 리프레시 토큰을 거절했다. 액세스 토큰을 버리는 것은 이때뿐이다.
         clearAccessToken()
-        return false
+        return 'expired'
       }
       const issued = (await response.json()) as AccessTokenResponse
       setAccessToken(issued.accessToken, issued.expiresIn)
-      return true
+      return 'revived'
     } catch {
-      // 네트워크가 끊긴 경우다. 토큰이 죽었다고 단정하지 않는다.
-      return false
+      // fetch 가 던졌다 = 요청이 서버에 닿지 못했다. 토큰이 죽었다고 단정하지 않고 그대로 둔다.
+      return 'offline'
     } finally {
       inFlightRefresh = null
     }
@@ -130,6 +154,17 @@ async function readError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, body)
 }
 
+/**
+ * 요청을 보내기도 전에 재발급이 거절된 경우의 에러.
+ * 읽어 올 응답이 없으니 화면에 보여줄 문장을 여기서 만든다. 401 인 것은 화면이 인증 실패로 알아보게 하려는 것이다.
+ */
+function sessionExpired(): ApiError {
+  return new ApiError(401, {
+    code: 'SESSION_EXPIRED',
+    message: '로그인이 만료되었어요. 다시 로그인해 주세요.',
+  })
+}
+
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, query, anonymous = false } = options
 
@@ -139,25 +174,39 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     if (!anonymous && token) headers.Authorization = `Bearer ${token}`
     if (body !== undefined) headers['Content-Type'] = 'application/json'
 
-    return fetch(buildUrl(path, query), {
-      method,
-      headers,
-      credentials: 'include',
-      body: body === undefined ? undefined : JSON.stringify(body),
-    })
+    try {
+      return await fetch(buildUrl(path, query), {
+        method,
+        headers,
+        credentials: 'include',
+        body: body === undefined ? undefined : JSON.stringify(body),
+      })
+    } catch (cause) {
+      // fetch 는 서버에 닿지 못했을 때만 던진다. 4xx·5xx 는 정상적으로 resolve 된다.
+      throw new NetworkError(cause)
+    }
   }
 
   // 만료가 눈앞이면 요청을 보내기 전에 갱신한다. 실패한 왕복을 한 번 아낀다.
   if (!anonymous && getAccessToken() && !isAccessTokenUsable()) {
-    await refreshAccessToken()
+    const outcome = await refreshAccessToken()
+    // 재발급이 서버에 닿지 못했으면 이 요청도 닿지 못한다. 세션은 건드리지 않고 요청만 실패시킨다.
+    if (outcome === 'offline') throw new NetworkError()
+    if (outcome === 'expired') {
+      onSessionEnded()
+      throw sessionExpired()
+    }
   }
 
   let response = await send()
 
   // 401 은 한 번만 되살려 본다. 두 번째도 401 이면 정말 끊긴 것이다.
   if (response.status === 401 && !anonymous) {
-    const revived = await refreshAccessToken()
-    if (!revived) {
+    const outcome = await refreshAccessToken()
+    // 재발급이 서버에 닿지 못한 것은 리프레시 토큰이 죽었다는 근거가 아니다.
+    // 여기서 onSessionEnded() 를 부르면 잠깐 끊긴 것만으로 로그아웃되고 캐시까지 날아간다.
+    if (outcome === 'offline') throw new NetworkError()
+    if (outcome === 'expired') {
       onSessionEnded()
       throw await readError(response)
     }

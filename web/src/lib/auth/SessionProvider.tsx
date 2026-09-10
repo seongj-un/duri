@@ -10,9 +10,15 @@ import {
 } from '../api/client'
 import { couplesApi, usersApi } from '../api/endpoints'
 import { queryKeys } from '../queryKeys'
+import type { RefreshOutcome } from '../api/client'
 import type { Couple, CoupleMember, LoginRequest, Me, SignupRequest } from '../api/types'
 
-type SessionState = 'booting' | 'anonymous' | 'authenticated'
+/**
+ * 'offline' 은 "로그인 여부를 아직 모른다"는 뜻이다.
+ * 'anonymous' 로 접으면 리프레시 쿠키가 멀쩡한데도 로그인 화면이 떠서, 다시 로그인하면
+ * 회전 토큰 family 가 바뀌고 다른 기기의 세션까지 흔들린다. 모를 때는 모른다고 둔다.
+ */
+type SessionState = 'booting' | 'anonymous' | 'authenticated' | 'offline'
 
 interface SessionValue {
   state: SessionState
@@ -20,9 +26,19 @@ interface SessionValue {
   couple: Couple | null
   /** 로딩이 끝나 라우팅 결정을 내려도 되는 시점인지. */
   ready: boolean
+  /** 부팅 재발급이 네트워크로 실패했을 때 다시 시도하는 중인지. */
+  retrying: boolean
+  retryBoot: () => Promise<void>
   signUp: (body: SignupRequest) => Promise<void>
   signIn: (body: LoginRequest) => Promise<void>
   signOut: () => Promise<void>
+}
+
+function stateFor(outcome: RefreshOutcome): SessionState {
+  if (outcome === 'revived') return 'authenticated'
+  // 서버가 리프레시 토큰을 거절했을 때만 로그인 화면으로 보낸다.
+  if (outcome === 'expired') return 'anonymous'
+  return 'offline'
 }
 
 const SessionContext = createContext<SessionValue | null>(null)
@@ -34,18 +50,36 @@ const SessionContext = createContext<SessionValue | null>(null)
 export function SessionProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [state, setState] = useState<SessionState>('booting')
+  const [retrying, setRetrying] = useState(false)
+
+  /**
+   * 부팅과 재시도가 같은 절차라 한 함수로 둔다.
+   * refreshAccessToken 이 진행 중인 요청을 나눠 쓰므로 겹쳐 불러도 재발급은 한 번만 나간다.
+   */
+  const restoreSession = useCallback(async () => {
+    setState(stateFor(await refreshAccessToken()))
+  }, [])
 
   useEffect(() => {
-    let cancelled = false
+    void restoreSession()
+  }, [restoreSession])
 
-    refreshAccessToken().then((revived) => {
-      if (!cancelled) setState(revived ? 'authenticated' : 'anonymous')
-    })
-
-    return () => {
-      cancelled = true
+  const retryBoot = useCallback(async () => {
+    setRetrying(true)
+    try {
+      await restoreSession()
+    } finally {
+      setRetrying(false)
     }
-  }, [])
+  }, [restoreSession])
+
+  // 연결이 돌아오면 사용자가 버튼을 누르기 전에 알아서 복구한다. 지하철에서 나오면 그냥 이어진다.
+  useEffect(() => {
+    if (state !== 'offline') return
+    const onOnline = () => void retryBoot()
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [state, retryBoot])
 
   // 어느 요청에서든 세션이 끊기면 앱 전체가 로그인 화면으로 돌아가야 한다.
   useEffect(() => {
@@ -95,7 +129,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       state,
       me: meQuery.data ?? null,
       couple: coupleQuery.data ?? null,
-      ready: state !== 'booting' && !waitingForMe && !waitingForCouple,
+      // 'offline' 에서는 아직 아무 결정도 내릴 수 없다. 라우팅을 열어 주면 로그인 화면으로 튕긴다.
+      ready: state !== 'booting' && state !== 'offline' && !waitingForMe && !waitingForCouple,
+      retrying,
+      retryBoot,
       signUp,
       signIn,
       signOut,
@@ -103,6 +140,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [
     state,
     authenticated,
+    retrying,
+    retryBoot,
     meQuery.isPending,
     meQuery.data,
     coupleQuery.isPending,

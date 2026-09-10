@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ApiError } from '../lib/api/client'
+import { ApiError, NetworkError } from '../lib/api/client'
 import styles from './States.module.css'
 
 interface EmptyStateProps {
@@ -64,6 +64,8 @@ export function SkeletonStack({ children }: { children: ReactNode }) {
 
 export function describe(error: unknown): string {
   if (error instanceof ApiError) return error.message
+  if (error instanceof NetworkError) return error.message
+  // request() 를 거치지 않은 날 fetch(로그아웃·SSE)가 던진 경우.
   if (error instanceof TypeError) return '네트워크에 연결할 수 없어요. 연결을 확인하고 다시 시도해 주세요.'
   if (error instanceof Error && error.message) return error.message
   return '일시적인 오류가 발생했습니다.'
